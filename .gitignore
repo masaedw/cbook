@@ -1,3 +1,5 @@
 *.s
 tmp
 9cc
+a.out
+*.dSYM
