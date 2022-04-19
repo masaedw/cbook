@@ -145,6 +145,10 @@ typedef enum
     ND_SUB, // -
     ND_MUL, // *
     ND_DIV, // /
+    ND_GT,  // <
+    ND_GE,  // <=
+    ND_EQ,  // ==
+    ND_NE,  // !=
     ND_NUM, // 整数
 } NodeKind;
 
@@ -192,22 +196,36 @@ Node *primary()
     return new_node_num(expect_number());
 }
 
+Node *unary()
+{
+    if (consume("+"))
+        return primary();
+    if (consume("-"))
+    {
+        Node *node = primary();
+        node->val = -node->val;
+        return node;
+    }
+    else
+        return primary();
+}
+
 Node *mul()
 {
-    Node *node = primary();
+    Node *node = unary();
 
     for (;;)
     {
         if (consume("*"))
-            node = new_node(ND_MUL, node, primary());
+            node = new_node(ND_MUL, node, unary());
         else if (consume("/"))
-            node = new_node(ND_DIV, node, primary());
+            node = new_node(ND_DIV, node, unary());
         else
             return node;
     }
 }
 
-Node *expr()
+Node *add()
 {
     Node *node = mul();
 
@@ -220,6 +238,55 @@ Node *expr()
         else
             return node;
     }
+}
+
+Node *relational()
+{
+    Node *node = add();
+
+    for (;;)
+    {
+        if (consume("<"))
+            node = new_node(ND_GT, node, add());
+        else if (consume("<="))
+            node = new_node(ND_GE, node, add());
+        else if (consume(">"))
+        {
+            node = new_node(ND_GT, node, add());
+            Node *tmp = node->lhs;
+            node->lhs = node->rhs;
+            node->rhs = tmp;
+        }
+        else if (consume(">="))
+        {
+            node = new_node(ND_GE, node, add());
+            Node *tmp = node->lhs;
+            node->lhs = node->rhs;
+            node->rhs = tmp;
+        }
+        else
+            return node;
+    }
+}
+
+Node *equality()
+{
+    Node *node = relational();
+
+    for (;;)
+    {
+        if (consume("=="))
+            node = new_node(ND_EQ, node, relational());
+        else if (consume("!="))
+            node = new_node(ND_NE, node, relational());
+        else
+            return node;
+    }
+}
+
+Node *expr()
+{
+    return equality();
 }
 
 void gen(Node *node)
