@@ -22,6 +22,7 @@ struct Token
     Token *next;    // 次の入力トークン
     int val;        // kindがTK_NUMの場合、その数値
     char *str;      // トークン文字列
+    int len;        // トークンの長さ
 };
 
 // 現在着目しているトークン
@@ -47,9 +48,11 @@ void error_at(char *loc, char *fmt, ...)
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-bool consume(char op)
+bool consume(char *op)
 {
-    if (token->kind != TK_RESERVED || token->str[0] != op)
+    if (token->kind != TK_RESERVED ||
+        strlen(op) != token->len ||
+        memcmp(token->str, op, token->len))
         return false;
     token = token->next;
     return true;
@@ -57,10 +60,12 @@ bool consume(char op)
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
-void expect(char op)
+void expect(char *op)
 {
-    if (token->kind != TK_RESERVED || token->str[0] != op)
-        error_at(token->str, "'%c'ではありません", op);
+    if (token->kind != TK_RESERVED ||
+        strlen(op) != token->len ||
+        memcmp(token->str, op, token->len))
+        error_at(token->str, "'%s'ではありません", op);
     token = token->next;
 }
 
@@ -86,6 +91,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str)
     Token *tok = calloc(1, sizeof(Token));
     tok->kind = kind;
     tok->str = str;
+    tok->len = 1;
     cur->next = tok;
     return tok;
 }
@@ -169,10 +175,10 @@ Node *expr();
 Node *primary()
 {
     // 次のトークンが"("なら、"(" expr ")"のはず
-    if (consume('('))
+    if (consume("("))
     {
         Node *node = expr();
-        expect(')');
+        expect(")");
         return node;
     }
 
@@ -186,9 +192,9 @@ Node *mul()
 
     for (;;)
     {
-        if (consume('*'))
+        if (consume("*"))
             node = new_node(ND_MUL, node, primary());
-        else if (consume('/'))
+        else if (consume("/"))
             node = new_node(ND_DIV, node, primary());
         else
             return node;
@@ -201,9 +207,9 @@ Node *expr()
 
     for (;;)
     {
-        if (consume('+'))
+        if (consume("+"))
             node = new_node(ND_ADD, node, mul());
-        else if (consume('-'))
+        else if (consume("-"))
             node = new_node(ND_SUB, node, mul());
         else
             return node;
