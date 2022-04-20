@@ -4,26 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// トークンの種類
-typedef enum
-{
-    TK_RESERVED, // 記号
-    TK_NUM,      // 整数トークン
-    TK_EOF,      // 入力の終わりを表すトークン
-} TokenKind;
-
-typedef struct Token Token;
-
-// トークン型
-struct Token
-{
-    TokenKind kind; // トークンの型
-    Token *next;    // 次の入力トークン
-    int val;        // kindがTK_NUMの場合、その数値
-    char *str;      // トークン文字列
-    int len;        // トークンの長さ
-};
+#include "9cc.h"
 
 // 現在着目しているトークン
 Token *token;
@@ -139,31 +120,6 @@ Token *tokenize(char *p)
     new_token(TK_EOF, cur, p, 0);
     return head.next;
 }
-
-// 抽象構文木のノードの種類
-typedef enum
-{
-    ND_ADD, // +
-    ND_SUB, // -
-    ND_MUL, // *
-    ND_DIV, // /
-    ND_LT,  // <
-    ND_LE,  // <=
-    ND_EQ,  // ==
-    ND_NE,  // !=
-    ND_NUM, // 整数
-} NodeKind;
-
-typedef struct Node Node;
-
-// 抽象構文木のノードの型
-struct Node
-{
-    NodeKind kind; // ノードの型
-    Node *lhs;     // 左辺
-    Node *rhs;     // 右辺
-    int val;       // kindがND_NUMの場合のみ使う
-};
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
 {
@@ -289,94 +245,4 @@ Node *equality()
 Node *expr()
 {
     return equality();
-}
-
-void gen(Node *node)
-{
-    if (node->kind == ND_NUM)
-    {
-        printf("\tmov w0, #%d\n", node->val);
-        printf("\tstr w0, [SP, #-16]!\n");
-        return;
-    }
-
-    gen(node->lhs);
-    gen(node->rhs);
-
-    printf("\tldr w0, [SP], #16\n"); // rhs
-    printf("\tldr w1, [SP], #16\n"); // lhs
-
-    // w1 op w0
-
-    switch (node->kind)
-    {
-    case ND_ADD:
-        printf("\tadd w0, w1, w0\n");
-        break;
-    case ND_SUB:
-        printf("\tsub w0, w1, w0\n");
-        break;
-    case ND_MUL:
-        printf("\tmul w0, w1, w0\n");
-        break;
-    case ND_DIV:
-        printf("\tsdiv w0, w1, w0\n");
-        break;
-    case ND_LT:
-        printf("\tcmp w1, w0\n");
-        printf("\tmov w1, #1\n");
-        printf("\tmov w2, #0\n");
-        printf("\tcsel w0, w1, w2, LO\n");
-        break;
-    case ND_LE:
-        printf("\tcmp w1, w0\n");
-        printf("\tmov w1, #1\n");
-        printf("\tmov w2, #0\n");
-        printf("\tcsel w0, w1, w2, LS\n");
-        break;
-    case ND_EQ:
-        printf("\tcmp w1, w0\n");
-        printf("\tmov w1, #1\n");
-        printf("\tmov w2, #0\n");
-        printf("\tcsel w0, w1, w2, EQ\n");
-        break;
-    case ND_NE:
-        printf("\tcmp w1, w0\n");
-        printf("\tmov w1, #1\n");
-        printf("\tmov w2, #0\n");
-        printf("\tcsel w0, w1, w2, NE\n");
-        break;
-    case ND_NUM:; // 警告抑制
-    }
-
-    printf("\tstr w0, [SP, #-16]!\n");
-}
-
-int main(int argc, char **argv)
-{
-    if (argc != 2)
-    {
-        fprintf(stderr, "引数の個数が正しくありません\n");
-        return 1;
-    }
-
-    // トークナイズしてパースする
-    user_input = argv[1];
-    token = tokenize(user_input);
-    Node *node = expr();
-
-    printf("\t.section\t__TEXT,__text,regular,pure_instructions\n");
-    printf("\t.build_version macos, 12, 0\tsdk_version 12, 3\n");
-    printf("\t.global\t_main\n");
-    printf("\t.p2align\t2\n");
-    printf("_main:\n");
-
-    // 抽象構文木を下りながらコード生成
-    gen(node);
-
-    // スタックトップに式全体の値が残っているはずなので
-    // それをW0にロードして関数からの返り値とする
-    printf("\tldr w0, [SP], #16\n");
-    printf("\tret\n");
-    return 0;
 }
