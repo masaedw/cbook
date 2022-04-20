@@ -114,7 +114,9 @@ Token *tokenize(char *p)
 
         if (strncmp(p, "<=", 2) == 0 || strncmp(p, ">=", 2) == 0 || strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0)
         {
-            cur = new_token(TK_RESERVED, cur, p++, 2);
+            cur = new_token(TK_RESERVED, cur, p, 2);
+            p += 2;
+            continue;
         }
 
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' ||
@@ -145,8 +147,8 @@ typedef enum
     ND_SUB, // -
     ND_MUL, // *
     ND_DIV, // /
-    ND_GT,  // <
-    ND_GE,  // <=
+    ND_LT,  // <
+    ND_LE,  // <=
     ND_EQ,  // ==
     ND_NE,  // !=
     ND_NUM, // 整数
@@ -247,19 +249,19 @@ Node *relational()
     for (;;)
     {
         if (consume("<"))
-            node = new_node(ND_GT, node, add());
+            node = new_node(ND_LT, node, add());
         else if (consume("<="))
-            node = new_node(ND_GE, node, add());
+            node = new_node(ND_LE, node, add());
         else if (consume(">"))
         {
-            node = new_node(ND_GT, node, add());
+            node = new_node(ND_LT, node, add());
             Node *tmp = node->lhs;
             node->lhs = node->rhs;
             node->rhs = tmp;
         }
         else if (consume(">="))
         {
-            node = new_node(ND_GE, node, add());
+            node = new_node(ND_LE, node, add());
             Node *tmp = node->lhs;
             node->lhs = node->rhs;
             node->rhs = tmp;
@@ -301,8 +303,10 @@ void gen(Node *node)
     gen(node->lhs);
     gen(node->rhs);
 
-    printf("\tldr w0, [SP], #16\n");
-    printf("\tldr w1, [SP], #16\n");
+    printf("\tldr w0, [SP], #16\n"); // rhs
+    printf("\tldr w1, [SP], #16\n"); // lhs
+
+    // w1 op w0
 
     switch (node->kind)
     {
@@ -317,6 +321,30 @@ void gen(Node *node)
         break;
     case ND_DIV:
         printf("\tsdiv w0, w1, w0\n");
+        break;
+    case ND_LT:
+        printf("\tcmp w1, w0\n");
+        printf("\tmov w1, #1\n");
+        printf("\tmov w2, #0\n");
+        printf("\tcsel w0, w1, w2, LO\n");
+        break;
+    case ND_LE:
+        printf("\tcmp w1, w0\n");
+        printf("\tmov w1, #1\n");
+        printf("\tmov w2, #0\n");
+        printf("\tcsel w0, w1, w2, LS\n");
+        break;
+    case ND_EQ:
+        printf("\tcmp w1, w0\n");
+        printf("\tmov w1, #1\n");
+        printf("\tmov w2, #0\n");
+        printf("\tcsel w0, w1, w2, EQ\n");
+        break;
+    case ND_NE:
+        printf("\tcmp w1, w0\n");
+        printf("\tmov w1, #1\n");
+        printf("\tmov w2, #0\n");
+        printf("\tcsel w0, w1, w2, NE\n");
         break;
     case ND_NUM:; // 警告抑制
     }

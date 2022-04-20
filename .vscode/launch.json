@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/9cc",
             "args": [
-                "5+6*7"
+                "5==7"
             ],
             "stopAtEntry": true,
             "cwd": "${fileDirname}",
