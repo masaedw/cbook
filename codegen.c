@@ -34,23 +34,19 @@ void gen(Node *node)
         break;
     case ND_LT:
         printf("  cmp X1, X0\n");
-        printf("  mov X1, #1\n");
-        printf("  csel X0, X1, XZR, LO\n");
+        printf("  cset X0, LO\n");
         break;
     case ND_LE:
         printf("  cmp X1, X0\n");
-        printf("  mov X1, #1\n");
-        printf("  csel X0, X1, XZR, LS\n");
+        printf("  cset X0, LS\n");
         break;
     case ND_EQ:
         printf("  cmp X1, X0\n");
-        printf("  mov X1, #1\n");
-        printf("  csel X0, X1, XZR, EQ\n");
+        printf("  cset X0, EQ\n");
         break;
     case ND_NE:
         printf("  cmp X1, X0\n");
-        printf("  mov X1, #1\n");
-        printf("  csel X0, X1, XZR, NE\n");
+        printf("  cset X0, NE\n");
         break;
     case ND_NUM:; // 警告抑制
     }
