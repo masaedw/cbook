@@ -45,7 +45,11 @@ bool consume(char *op)
 Token *consume_ident()
 {
     if (token->kind == TK_IDENT)
-        return token;
+    {
+        Token *tmp = token;
+        token = token->next;
+        return tmp;
+    }
     return NULL;
 }
 
@@ -113,7 +117,7 @@ void tokenize()
 
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' ||
             *p == '<' || *p == '>' ||
-            *p == ';')
+            *p == '=' || *p == ';')
         {
             cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
@@ -173,7 +177,7 @@ Node *primary()
     {
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_LVAR;
-        node->offset = (tok->str[0] - 'a' + 1) * 8;
+        node->offset = (tok->str[0] - 'a') * 8;
         return node;
     }
 

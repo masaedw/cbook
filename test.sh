@@ -35,5 +35,7 @@ assert 1 '1 <= 2;'
 assert 0 '0 >= 1;'
 assert 1 '1 >= 1;'
 assert 1 '2 >= 1;'
+assert 2 'a = 1; b = 2; a * b;'
+assert 50 'c = 5; x = 10; c * x;'
 
 echo OK

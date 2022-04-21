@@ -25,7 +25,7 @@ void gen(Node *node)
     case ND_LVAR:
         if (node->kind != ND_LVAR)
             error("代入の左辺値が変数ではありません");
-        printf("  ldr X0, [FP, #%d]\n", node->offset);
+        printf("  ldur X0, [FP, #%d]\n", node->offset);
         printf("  str X0, [SP, #-16]!\n");
         return;
     case ND_ASSIGN:
@@ -33,8 +33,8 @@ void gen(Node *node)
             error("代入の左辺値が変数ではありません");
         gen(node->rhs);
 
-        printf("  ldr X0, [SP], #16\n");
-        printf("  str X0, [FP, #%d]\n", node->lhs->offset);
+        printf("  ldur X0, [SP, #0]\n");
+        printf("  stur X0, [FP, #%d]\n", node->lhs->offset);
         return;
     }
 

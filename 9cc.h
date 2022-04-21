@@ -51,8 +51,6 @@ struct Node
     Node *rhs;     // 右辺
     int val;       // kindがND_NUMの場合のみ使う
     int offset;    // kindがND_LVARの場合のみ使う
-                   // offsetは1,2,3,4...でよい。
-                   // prologueではFPには変数の個数*8より大きい16の倍数値をセットすること。
 };
 
 // パース結果
