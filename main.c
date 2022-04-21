@@ -11,21 +11,37 @@ int main(int argc, char **argv)
 
     // トークナイズしてパースする
     user_input = argv[1];
-    token = tokenize(user_input);
-    Node *node = expr();
+    tokenize();
+    program();
 
-    printf("\t.section\t__TEXT,__text,regular,pure_instructions\n");
-    printf("\t.build_version macos, 12, 0\tsdk_version 12, 3\n");
-    printf("\t.global\t_main\n");
-    printf("\t.p2align\t2\n");
+    // アセンブリの前半部分を出力
+    printf("  .section\t__TEXT,__text,regular,pure_instructions\n");
+    printf("  .build_version macos, 12, 0\tsdk_version 12, 3\n");
+    printf("  .global\t_main\n");
+    printf("  .p2align\t2\n");
     printf("_main:\n");
 
-    // 抽象構文木を下りながらコード生成
-    gen(node);
+    // プロローグ
+    // 変数26個分の領域を確保する
+    int offset = 208; // 26 * 8
+    printf("  stp LR, FP, [SP, #-16]!\n");
+    printf("  sub FP, SP, #%d\n", offset);
+    printf("  sub SP, SP, #%d\n", offset);
 
-    // スタックトップに式全体の値が残っているはずなので
-    // それをW0にロードして関数からの返り値とする
-    printf("\tldr w0, [SP], #16\n");
-    printf("\tret\n");
+    // 先頭の式から順にコード生成
+    for (int i = 0; code[i]; i++)
+    {
+        gen(code[i]);
+
+        // 式の評価結果としてスタックに一つの値が残っている
+        // はずなので、スタックが溢れないようにポップしておく
+        printf("  ldr X0, [SP], #16\n");
+    }
+
+    // エピローグ
+    // 最後の式の結果がX0に残っているのでそれが返り値になる
+    printf("  add SP, SP, #%d\n", offset);
+    printf("  ldp LR, FP, [SP], #16\n");
+    printf("  ret\n");
     return 0;
 }

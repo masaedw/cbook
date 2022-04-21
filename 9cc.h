@@ -2,6 +2,7 @@
 typedef enum
 {
     TK_RESERVED, // 記号
+    TK_IDENT,    // 識別子
     TK_NUM,      // 整数トークン
     TK_EOF,      // 入力の終わりを表すトークン
 } TokenKind;
@@ -27,15 +28,17 @@ extern char *user_input;
 // 抽象構文木のノードの種類
 typedef enum
 {
-    ND_ADD, // +
-    ND_SUB, // -
-    ND_MUL, // *
-    ND_DIV, // /
-    ND_LT,  // <
-    ND_LE,  // <=
-    ND_EQ,  // ==
-    ND_NE,  // !=
-    ND_NUM, // 整数
+    ND_ADD,    // +
+    ND_SUB,    // -
+    ND_MUL,    // *
+    ND_DIV,    // /
+    ND_LT,     // <
+    ND_LE,     // <=
+    ND_EQ,     // ==
+    ND_NE,     // !=
+    ND_ASSIGN, // =
+    ND_NUM,    // 整数
+    ND_LVAR,   // 変数
 } NodeKind;
 
 typedef struct Node Node;
@@ -47,11 +50,18 @@ struct Node
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
     int val;       // kindがND_NUMの場合のみ使う
+    int offset;    // kindがND_LVARの場合のみ使う
+                   // offsetは1,2,3,4...でよい。
+                   // prologueではFPには変数の個数*8より大きい16の倍数値をセットすること。
 };
 
-// 入力文字列pをトークナイズしてそれを返す
-Token *tokenize(char *p);
+// パース結果
+extern Node *code[100];
+
+// user_inputをトークナイズする
+void tokenize();
 
 void gen(Node *node);
 
-Node *expr();
+// tokenをパースして、codeに保存する
+void program();

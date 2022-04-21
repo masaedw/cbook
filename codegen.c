@@ -1,12 +1,40 @@
+#include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "9cc.h"
+
+// エラーを報告するための関数
+// printfと同じ引数を取る
+void error(char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    exit(1);
+}
 
 void gen(Node *node)
 {
-    if (node->kind == ND_NUM)
+    switch (node->kind)
     {
+    case ND_NUM:
         printf("  mov X0, #%d\n", node->val);
         printf("  str X0, [SP, #-16]!\n");
+        return;
+    case ND_LVAR:
+        if (node->kind != ND_LVAR)
+            error("代入の左辺値が変数ではありません");
+        printf("  ldr X0, [FP, #%d]\n", node->offset);
+        printf("  str X0, [SP, #-16]!\n");
+        return;
+    case ND_ASSIGN:
+        if (node->lhs->kind != ND_LVAR)
+            error("代入の左辺値が変数ではありません");
+        gen(node->rhs);
+
+        printf("  ldr X0, [SP], #16\n");
+        printf("  str X0, [FP, #%d]\n", node->lhs->offset);
         return;
     }
 
@@ -48,7 +76,6 @@ void gen(Node *node)
         printf("  cmp X1, X0\n");
         printf("  cset X0, NE\n");
         break;
-    case ND_NUM:; // 警告抑制
     }
 
     printf("  str X0, [SP, #-16]!\n");

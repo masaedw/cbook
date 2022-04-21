@@ -12,6 +12,9 @@ Token *token;
 // 入力プログラム
 char *user_input;
 
+// パース結果
+Node *code[100];
+
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...)
 {
@@ -37,6 +40,13 @@ bool consume(char *op)
         return false;
     token = token->next;
     return true;
+}
+
+Token *consume_ident()
+{
+    if (token->kind == TK_IDENT)
+        return token;
+    return NULL;
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
@@ -77,12 +87,13 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len)
     return tok;
 }
 
-// 入力文字列pをトークナイズしてそれを返す
-Token *tokenize(char *p)
+// user_inputをトークナイズする
+void tokenize()
 {
     Token head;
     head.next = NULL;
     Token *cur = &head;
+    char *p = user_input;
 
     while (*p)
     {
@@ -101,7 +112,8 @@ Token *tokenize(char *p)
         }
 
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' ||
-            *p == '<' || *p == '>')
+            *p == '<' || *p == '>' ||
+            *p == ';')
         {
             cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
@@ -114,11 +126,17 @@ Token *tokenize(char *p)
             continue;
         }
 
+        if ('a' <= *p && *p <= 'z')
+        {
+            cur = new_token(TK_IDENT, cur, p++, 1);
+            continue;
+        }
+
         error_at(p, "トークナイズできません");
     }
 
     new_token(TK_EOF, cur, p, 0);
-    return head.next;
+    token = head.next;
 }
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
@@ -147,6 +165,15 @@ Node *primary()
     {
         Node *node = expr();
         expect(")");
+        return node;
+    }
+
+    Token *tok = consume_ident();
+    if (tok)
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_LVAR;
+        node->offset = (tok->str[0] - 'a' + 1) * 8;
         return node;
     }
 
@@ -242,7 +269,30 @@ Node *equality()
     }
 }
 
+Node *assign()
+{
+    Node *node = equality();
+    if (consume("="))
+        node = new_node(ND_ASSIGN, node, assign());
+    return node;
+}
+
 Node *expr()
 {
-    return equality();
+    return assign();
+}
+
+Node *stmt()
+{
+    Node *node = expr();
+    expect(";");
+    return node;
+}
+
+void program()
+{
+    int i = 0;
+    while (!at_eof())
+        code[i++] = stmt();
+    code[i] = NULL;
 }
