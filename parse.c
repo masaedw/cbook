@@ -15,6 +15,9 @@ char *user_input;
 // パース結果
 Node *code[100];
 
+// ローカル変数
+LVar *locals;
+
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...)
 {
@@ -28,6 +31,15 @@ void error_at(char *loc, char *fmt, ...)
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
     exit(1);
+}
+
+// 変数を名前で検索する。見つからなかった場合はNULLを返す。
+LVar *find_lvar(Token *tok)
+{
+    for (LVar *var = locals; var; var = var->next)
+        if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+            return var;
+    return NULL;
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
@@ -78,6 +90,14 @@ int expect_number()
 bool at_eof()
 {
     return token->kind == TK_EOF;
+}
+
+int is_alnum(char c)
+{
+    return ('a' <= c && c <= 'z') ||
+           ('A' <= c && c <= 'Z') ||
+           ('0' <= c && c <= '9') ||
+           (c == '_');
 }
 
 // 新しいトークンを作成してcurに繋げる
@@ -132,7 +152,11 @@ void tokenize()
 
         if ('a' <= *p && *p <= 'z')
         {
-            cur = new_token(TK_IDENT, cur, p++, 1);
+            char *q = p + 1;
+            while (is_alnum(*q))
+                q++;
+            cur = new_token(TK_IDENT, cur, p, q - p);
+            p = q;
             continue;
         }
 
@@ -177,7 +201,22 @@ Node *primary()
     {
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_LVAR;
-        node->offset = (tok->str[0] - 'a') * 8;
+
+        LVar *lvar = find_lvar(tok);
+        if (lvar)
+        {
+            node->offset = lvar->offset;
+        }
+        else
+        {
+            lvar = calloc(1, sizeof(LVar));
+            lvar->next = locals;
+            lvar->name = tok->str;
+            lvar->len = tok->len;
+            lvar->offset = locals->offset + 8;
+            node->offset = lvar->offset;
+            locals = lvar;
+        }
         return node;
     }
 

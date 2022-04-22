@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include "9cc.h"
 
@@ -10,6 +11,7 @@ int main(int argc, char **argv)
     }
 
     // トークナイズしてパースする
+    locals = calloc(1, sizeof(LVar));
     user_input = argv[1];
     tokenize();
     program();
@@ -22,8 +24,12 @@ int main(int argc, char **argv)
     printf("_main:\n");
 
     // プロローグ
-    // 変数26個分の領域を確保する
-    int offset = 208; // 26 * 8
+    // 変数分の領域を16バイト境界で確保する
+    int offset = locals->offset + 8;
+    if (offset % 16 != 0)
+    {
+        offset += 8;
+    }
     printf("  stp LR, FP, [SP, #-16]!\n");
     printf("  sub FP, SP, #%d\n", offset);
     printf("  sub SP, SP, #%d\n", offset);
