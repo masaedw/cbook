@@ -57,11 +57,28 @@ void gen(Node *node)
         return;
     case ND_IF:
         gen(node->expr0);
-        printf("  ldr X0, [SP], #16\n");
-        int lend = new_label();
-        printf("  cbz X0, LEND_%03d\n", lend);
-        gen(node->lhs);
-        printf("LEND_%03d:\n", lend);
+        printf("  ldur X0, [SP, #0]\n");
+        if (!node->rhs)
+        {
+            int lend = new_label();
+            printf("  cbz X0, LEND_%03d\n", lend);
+            printf("  ldr X0, [SP], #16\n");
+            gen(node->lhs);
+            printf("LEND_%03d:\n", lend);
+        }
+        else
+        {
+            int lelse = new_label();
+            int lend = new_label();
+            printf("  cbz X0, LELSE_%03d\n", lelse);
+            printf("  ldr X0, [SP], #16\n");
+            gen(node->lhs);
+            printf("  b LEND_%03d\n", lend);
+            printf("LELSE_%03d:\n", lelse);
+            printf("  ldr X0, [SP], #16\n");
+            gen(node->rhs);
+            printf("LEND_%03d:\n", lend);
+        }
         return;
     }
 

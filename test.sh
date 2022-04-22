@@ -16,8 +16,6 @@ assert() {
   fi
 }
 
-assert 0 "if (1) 0;"
-assert 5 "if(10) 5;"
 assert 0 "0;"
 assert 42 "42;"
 assert 21 "5+20-4;"
@@ -43,5 +41,10 @@ assert 50 'abc = 50; abc;'
 assert 0 "return 0;"
 assert 50 "return 50;"
 assert 1 "5 * 5; return 1; 5;"
+assert 0 "if (1) 0;"
+assert 5 "if(10) 5;"
+assert 1 "if (0) return 5; 1;"
+assert 1 "if (1) 1; else 2;"
+assert 2 "if (0) a = 1; else a = 2; a;"
 
 echo OK
