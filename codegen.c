@@ -36,6 +36,19 @@ void gen(Node *node)
         printf("  ldur X0, [SP, #0]\n");
         printf("  stur X0, [FP, #%d]\n", node->lhs->offset);
         return;
+    case ND_RETURN:
+        gen(node->lhs);
+        int offset = locals->offset + 8;
+        if (offset % 16 != 0)
+        {
+            offset += 8;
+        }
+        printf("  ldr X0, [SP], #16\n");
+        // エピローグ
+        printf("  add SP, SP, #%d\n", offset);
+        printf("  ldp LR, FP, [SP], #16\n");
+        printf("  ret\n");
+        return;
     }
 
     gen(node->lhs);

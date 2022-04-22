@@ -38,5 +38,8 @@ assert 1 '2 >= 1;'
 assert 2 'a = 1; b = 2; a * b;'
 assert 50 'c = 5; x = 10; c * x;'
 assert 50 'abc = 50; abc;'
+assert 0 "return 0;"
+assert 50 "return 50;"
+assert 1 "5 * 5; return 1; 5;"
 
 echo OK
