@@ -97,17 +97,32 @@ int expect_number()
     return val;
 }
 
+void expect_token(TokenKind kind, char *name)
+{
+    if (token->kind != kind)
+    {
+        error_at(token->str, "'%s'ではありません", name);
+    }
+    token = token->next;
+}
+
 bool at_eof()
 {
     return token->kind == TK_EOF;
 }
 
-int is_alnum(char c)
+bool is_alnum(char c)
 {
     return ('a' <= c && c <= 'z') ||
            ('A' <= c && c <= 'Z') ||
            ('0' <= c && c <= '9') ||
            (c == '_');
+}
+
+bool is_token(char *p, char *token)
+{
+    int len = strlen(token);
+    return strncmp(p, token, len) == 0 && !is_alnum(p[len]);
 }
 
 // 新しいトークンを作成してcurに繋げる
@@ -160,10 +175,38 @@ void tokenize()
             continue;
         }
 
-        if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6]))
+        if (is_token(p, "return"))
         {
             cur = new_token(TK_RETURN, cur, p, 6);
             p += 6;
+            continue;
+        }
+
+        if (is_token(p, "if"))
+        {
+            cur = new_token(TK_IF, cur, p, 2);
+            p += 2;
+            continue;
+        }
+
+        if (is_token(p, "else"))
+        {
+            cur = new_token(TK_ELSE, cur, p, 4);
+            p += 4;
+            continue;
+        }
+
+        if (is_token(p, "while"))
+        {
+            cur = new_token(TK_ELSE, cur, p, 5);
+            p += 5;
+            continue;
+        }
+
+        if (is_token(p, "for"))
+        {
+            cur = new_token(TK_ELSE, cur, p, 3);
+            p += 3;
             continue;
         }
 
@@ -351,6 +394,53 @@ Node *stmt()
         node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
+    }
+    else if (consume_token(TK_IF))
+    {
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_IF;
+        expect("(");
+        node->expr0 = expr();
+        expect(")");
+        node->lhs = stmt();
+        if (consume_token(TK_ELSE))
+        {
+            node->rhs = stmt();
+        }
+        return node;
+    }
+    else if (consume_token(TK_WHILE))
+    {
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_WHILE;
+        expect("(");
+        node->expr0 = expr();
+        expect(")");
+        node->lhs = stmt();
+        return node;
+    }
+    else if (consume_token(TK_FOR))
+    {
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_FOR;
+        expect("(");
+        if (!consume(";"))
+        {
+            node->expr0 = expr();
+            expect(";");
+        }
+        if (!consume(";"))
+        {
+            node->expr1 = expr();
+            expect(";");
+        }
+        if (!consume(")"))
+        {
+            node->expr2 = expr();
+            expect(")");
+        }
+        node->lhs = stmt();
+        return node;
     }
     else
     {

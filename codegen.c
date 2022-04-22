@@ -14,6 +14,12 @@ void error(char *fmt, ...)
     exit(1);
 }
 
+int new_label()
+{
+    static int count = 0;
+    return count++;
+}
+
 void gen(Node *node)
 {
     switch (node->kind)
@@ -48,6 +54,14 @@ void gen(Node *node)
         printf("  add SP, SP, #%d\n", offset);
         printf("  ldp LR, FP, [SP], #16\n");
         printf("  ret\n");
+        return;
+    case ND_IF:
+        gen(node->expr0);
+        printf("  ldr X0, [SP], #16\n");
+        int lend = new_label();
+        printf("  cbz X0, LEND_%03d\n", lend);
+        gen(node->lhs);
+        printf("LEND_%03d:\n", lend);
         return;
     }
 
