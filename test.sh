@@ -46,5 +46,13 @@ assert 5 "if(10) 5;"
 assert 1 "if (0) return 5; 1;"
 assert 1 "if (1) 1; else 2;"
 assert 2 "if (0) a = 1; else a = 2; a;"
+assert 1 "a = 5; a = a - 4; a;"
+assert 1 "a = 5; if (a == 5) return 1; else 5;"
+assert 1 "a = 5; if (a == 0) return 0; else a = a - 4; a;"
+assert 0 "while (0) a = 5; 0;"
+assert 0 "while (1) return 0; 1;"
+assert 0 "a = 5; while (a) return 0; 5;"
+assert 1 "a = 5; while (a) if (a == 0) return 0; else return 1; 5;"
+assert 0 "a = 5; while (a) if (a == 1) return 0; else a = a - 1; 5;"
 
 echo OK

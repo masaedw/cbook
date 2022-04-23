@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/9cc",
             "args": [
-                "if (1) 0;"
+                "while (0) a = 5; 0;"
             ],
             "stopAtEntry": true,
             "cwd": "${fileDirname}",

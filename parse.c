@@ -198,14 +198,14 @@ void tokenize()
 
         if (is_token(p, "while"))
         {
-            cur = new_token(TK_ELSE, cur, p, 5);
+            cur = new_token(TK_WHILE, cur, p, 5);
             p += 5;
             continue;
         }
 
         if (is_token(p, "for"))
         {
-            cur = new_token(TK_ELSE, cur, p, 3);
+            cur = new_token(TK_FOR, cur, p, 3);
             p += 3;
             continue;
         }

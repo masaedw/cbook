@@ -80,6 +80,21 @@ void gen(Node *node)
             printf("LEND_%03d:\n", lend);
         }
         return;
+    case ND_WHILE:
+    {
+        int lbegin = new_label();
+        int lend = new_label();
+        printf("LBEGIN_%03d:\n", lbegin);
+        gen(node->expr0);
+        printf("  ldur X0, [SP, #0]\n");
+        printf("  cbz X0, LEND_%03d\n", lend);
+        printf("  ldr X0, [SP], #16\n");
+        gen(node->lhs);
+        printf("  ldr X0, [SP], #16\n");
+        printf("  b LBEGIN_%03d\n", lbegin);
+        printf("LEND_%03d:\n", lend);
+        return;
+    }
     }
 
     gen(node->lhs);
