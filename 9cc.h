@@ -55,7 +55,7 @@ typedef struct Node Node;
 // 抽象構文木のノードの型
 // if (expr0) lhs else rhs
 // while (expr0) lhs
-// for (expr0; expr1; expr2) lhs
+// for (expr0; expr1; rhs) lhs
 struct Node
 {
     NodeKind kind; // ノードの型
@@ -65,7 +65,6 @@ struct Node
     int offset;    // kindがND_LVARの場合のみ使う
     Node *expr0;   // if/while/forの場合に使う
     Node *expr1;   // forの場合のみ使う
-    Node *expr2;   // forの場合のみ使う
 };
 
 // パース結果

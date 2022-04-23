@@ -436,7 +436,7 @@ Node *stmt()
         }
         if (!consume(")"))
         {
-            node->expr2 = expr();
+            node->rhs = expr();
             expect(")");
         }
         node->lhs = stmt();

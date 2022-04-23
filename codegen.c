@@ -51,48 +51,100 @@ void gen(Node *node)
         }
         printf("  ldr X0, [SP], #16\n");
         // エピローグ
+        printf("  mov SP, FP\n");
         printf("  add SP, SP, #%d\n", offset);
         printf("  ldp LR, FP, [SP], #16\n");
         printf("  ret\n");
         return;
     case ND_IF:
+    {
+        // 最後に評価した値をスタックトップに残す
+        int label = new_label();
+        printf("  ; start if expr %03d\n", label);
         gen(node->expr0);
+        printf("  ; end if expr %03d\n", label);
         printf("  ldur X0, [SP, #0]\n");
         if (!node->rhs)
         {
-            int lend = new_label();
-            printf("  cbz X0, LEND_%03d\n", lend);
+            printf("  cbz X0, LEND_%03d\n", label);
             printf("  ldr X0, [SP], #16\n");
+            printf("  ; start then %03d\n", label);
             gen(node->lhs);
-            printf("LEND_%03d:\n", lend);
+            printf("LEND_%03d:\n", label);
+            printf("  ; end then %03d\n", label);
         }
         else
         {
-            int lelse = new_label();
-            int lend = new_label();
-            printf("  cbz X0, LELSE_%03d\n", lelse);
+            printf("  cbz X0, LELSE_%03d\n", label);
             printf("  ldr X0, [SP], #16\n");
+            printf("  ; start then %03d\n", label);
             gen(node->lhs);
-            printf("  b LEND_%03d\n", lend);
-            printf("LELSE_%03d:\n", lelse);
+            printf("  ; end then %03d\n", label);
+            printf("  b LEND_%03d\n", label);
+            printf("LELSE_%03d:\n", label);
             printf("  ldr X0, [SP], #16\n");
+            printf("  ; start else %03d\n", label);
             gen(node->rhs);
-            printf("LEND_%03d:\n", lend);
+            printf("  ; end else %03d\n", label);
+            printf("LEND_%03d:\n", label);
         }
         return;
+    }
     case ND_WHILE:
     {
-        int lbegin = new_label();
-        int lend = new_label();
-        printf("LBEGIN_%03d:\n", lbegin);
+        // 条件式の結果をスタックトップに残す
+        int label = new_label();
+        printf("LBEGIN_%03d:\n", label);
+        printf("  ; start while expr %03d\n", label);
         gen(node->expr0);
+        printf("  ; end while expr %03d\n", label);
         printf("  ldur X0, [SP, #0]\n");
-        printf("  cbz X0, LEND_%03d\n", lend);
+        printf("  cbz X0, LEND_%03d\n", label);
         printf("  ldr X0, [SP], #16\n");
+        printf("  ; start while body %03d\n", label);
         gen(node->lhs);
+        printf("  ; end while body %03d\n", label);
         printf("  ldr X0, [SP], #16\n");
-        printf("  b LBEGIN_%03d\n", lbegin);
-        printf("LEND_%03d:\n", lend);
+        printf("  b LBEGIN_%03d\n", label);
+        printf("LEND_%03d:\n", label);
+        return;
+    }
+    case ND_FOR:
+    {
+        // for (expr0; expr1; rhs) lhs
+
+        // 条件式 expr1がある場合、条件式の結果をスタックトップに残す
+        // ない場合、returnで抜けるはずなので考えない
+        int label = new_label();
+        if (node->expr0)
+        {
+            printf("  ; start for expr0 %03d\n", label);
+            gen(node->expr0);
+            printf("  ; end for expr0 %03d\n", label);
+            printf("  ldr X0, [SP], #16\n");
+        }
+        printf("LBEGIN_%03d:\n", label);
+        if (node->expr1)
+        {
+            printf("  ; start for expr1 %03d\n", label);
+            gen(node->expr1);
+            printf("  ; end for expr1 %03d\n", label);
+            printf("  ldur X0, [SP, #0]\n");
+            printf("  cbz X0, LEND_%03d\n", label);
+        }
+        printf("  ; start for lhs %03d\n", label);
+        gen(node->lhs);
+        printf("  ; end for lhs %03d\n", label);
+        printf("  ldr X0, [SP], #16\n");
+        if (node->rhs)
+        {
+            printf("  ; start for rhs %03d\n", label);
+            gen(node->rhs);
+            printf("  ; end for rhs %03d\n", label);
+            printf("  ldr X0, [SP], #16\n");
+        }
+        printf("  b LBEGIN_%03d\n", label);
+        printf("LEND_%03d:\n", label);
         return;
     }
     }
