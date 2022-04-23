@@ -132,6 +132,7 @@ void gen(Node *node)
             printf("  ldur X0, [SP, #0]\n");
             printf("  cbz X0, LEND_%03d\n", label);
         }
+        printf("  ldr X0, [SP], #16\n");
         printf("  ; start for lhs %03d\n", label);
         gen(node->lhs);
         printf("  ; end for lhs %03d\n", label);

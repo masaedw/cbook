@@ -46,6 +46,7 @@ int main(int argc, char **argv)
 
     // エピローグ
     // 最後の式の結果がX0に残っているのでそれが返り値になる
+    printf("  mov SP, FP\n");
     printf("  add SP, SP, #%d\n", offset);
     printf("  ldp LR, FP, [SP], #16\n");
     printf("  ret\n");
