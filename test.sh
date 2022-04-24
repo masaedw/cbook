@@ -4,7 +4,7 @@ assert() {
   input="$2"
 
   ./9cc "$input" > tmp.s
-  cc -o tmp tmp.s
+  cc -o tmp tmp.s ext.o
   ./tmp
   actual="$?"
 
@@ -16,6 +16,7 @@ assert() {
   fi
 }
 
+assert 5 "noargtest();"
 assert 0 "0;"
 assert 42 "42;"
 assert 21 "5+20-4;"

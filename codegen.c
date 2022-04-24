@@ -149,7 +149,6 @@ void gen(Node *node)
         return;
     }
     case ND_BLOCK:
-    {
         // 最後に評価した値をスタックトップに残す。
         // bodyが空の場合は0をプッシュしておく。
         printf("  str XZR, [SP, #-16]!\n");
@@ -159,7 +158,10 @@ void gen(Node *node)
             gen(node->body[i]);
         }
         return;
-    }
+    case ND_CALL:
+        printf("  bl _%.*s\n", node->len, node->name);
+        printf("  str X0, [SP, #-16]!\n");
+        return;
     }
 
     gen(node->lhs);

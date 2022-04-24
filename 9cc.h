@@ -49,6 +49,7 @@ typedef enum
     ND_WHILE,  // while
     ND_FOR,    // for
     ND_BLOCK,  // block
+    ND_CALL,   // function call
 } NodeKind;
 
 typedef struct Node Node;
@@ -67,6 +68,8 @@ struct Node
     Node *expr0;   // if/while/forの場合に使う
     Node *expr1;   // forの場合のみ使う
     Node **body;   // blockの場合のみ使う
+    char *name;    // 関数の名前
+    int len;       // 名前の長さ
 };
 
 // パース結果
