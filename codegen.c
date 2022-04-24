@@ -148,6 +148,18 @@ void gen(Node *node)
         printf("LEND_%03d:\n", label);
         return;
     }
+    case ND_BLOCK:
+    {
+        // 最後に評価した値をスタックトップに残す。
+        // bodyが空の場合は0をプッシュしておく。
+        printf("  str XZR, [SP, #-16]!\n");
+        for (int i = 0; node->body[i]; i++)
+        {
+            printf("  ldr X0, [SP], #16\n");
+            gen(node->body[i]);
+        }
+        return;
+    }
     }
 
     gen(node->lhs);

@@ -60,5 +60,10 @@ assert 0 "for (a = 1; a != 0; a = a - 1) 1; 0;"
 assert 5 "for (a = 5; a != 0; ) if (a == 5) return 5; else a = 1;"
 assert 5 "for (a = 5; a != 0; ) if (a == 2) return 5; else a = a - 1;"
 assert 5 "b = 0; for (a = 5; a != 0; a = a - 1) b = b + 1; b;"
+assert 5 "{1;2;3;4;5;}"
+assert 0 "if(1) {0;} else {1;}"
+assert 1 "{ return 1; 5;}"
+assert 5 "for (;;) { return 5; }"
+assert 5 "while (1) { return 5; }"
 
 echo OK
