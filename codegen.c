@@ -171,6 +171,44 @@ void gen(Node *node)
         printf("  bl _%.*s\n", node->len, node->name);
         printf("  str X0, [SP, #-16]!\n");
         return;
+    case ND_FUNDEF:
+    {
+        // TODO: args
+
+        printf("  .global  _main  ; -- start function %.*s\n", node->len, node->name);
+        printf("  .p2align  2\n");
+        printf("_%.*s:\n", node->len, node->name);
+
+        // プロローグ
+        // 変数分の領域を16バイト境界で確保する
+        int offset = locals->offset + 8;
+        if (offset % 16 != 0)
+        {
+            offset += 8;
+        }
+        printf("  stp LR, FP, [SP, #-16]!\n");
+        printf("  sub FP, SP, #%d\n", offset);
+        printf("  sub SP, SP, #%d\n", offset);
+
+        // 先頭の式から順にコード生成
+        for (int i = 0; node->body[i]; i++)
+        {
+            gen(node->body[i]);
+
+            // 式の評価結果としてスタックに一つの値が残っている
+            // はずなので、スタックが溢れないようにポップしておく
+            printf("  ldr X0, [SP], #16\n");
+        }
+
+        // エピローグ
+        // 最後の式の結果がX0に残っているのでそれが返り値になる
+        printf("  mov SP, FP\n");
+        printf("  add SP, SP, #%d\n", offset);
+        printf("  ldp LR, FP, [SP], #16\n");
+        printf("  ret\n");
+        printf("; -- end function %.*s\n", node->len, node->name);
+        return;
+    }
     }
 
     gen(node->lhs);

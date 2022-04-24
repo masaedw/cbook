@@ -50,6 +50,7 @@ typedef enum
     ND_FOR,    // for
     ND_BLOCK,  // block
     ND_CALL,   // function call
+    ND_FUNDEF, // function definition
 } NodeKind;
 
 typedef struct Node Node;
@@ -67,7 +68,7 @@ struct Node
     int offset;    // kindがND_LVARの場合のみ使う
     Node *expr0;   // if/while/forの場合に使う
     Node *expr1;   // forの場合のみ使う
-    Node **body;   // blockの場合のみ使う
+    Node **body;   // blockと関数定義の場合に使う
     char *name;    // 関数の名前
     int len;       // 名前の長さ
     Node *args[8]; // 関数の引数

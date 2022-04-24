@@ -106,6 +106,16 @@ void expect_token(TokenKind kind, char *name)
     token = token->next;
 }
 
+Token *expect_ident()
+{
+    Token *token = consume_ident();
+    if (!token)
+    {
+        error_at(token->str, "identではありません。");
+    }
+    return token;
+}
+
 bool at_eof()
 {
     return token->kind == TK_EOF;
@@ -488,10 +498,30 @@ Node *stmt()
     return node;
 }
 
+Node *func_definition()
+{
+    Token *ident = expect_ident();
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_FUNDEF;
+    node->name = ident->str;
+    node->len = ident->len;
+    node->body = calloc(100, sizeof(Node *));
+    expect("(");
+    expect(")");
+    expect("{");
+    int i = 0;
+    while (!consume("}"))
+    {
+        node->body[i++] = stmt();
+    }
+    node->body[i] = NULL;
+    return node;
+}
+
 void program()
 {
     int i = 0;
     while (!at_eof())
-        code[i++] = stmt();
+        code[i++] = func_definition();
     code[i] = NULL;
 }
