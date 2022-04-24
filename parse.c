@@ -162,7 +162,7 @@ void tokenize()
 
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' ||
             *p == '<' || *p == '>' ||
-            *p == '=' || *p == ';' || *p == '{' || *p == '}')
+            *p == '=' || *p == ';' || *p == '{' || *p == '}' || *p == ',')
         {
             cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
@@ -261,11 +261,25 @@ Node *primary()
     {
         if (consume("("))
         {
-            expect(")");
             Node *node = calloc(1, sizeof(Node));
             node->kind = ND_CALL;
             node->name = tok->str;
             node->len = tok->len;
+
+            if (consume(")"))
+            {
+                return node;
+            }
+
+            int i = 0;
+            while (i < 8)
+            {
+                node->args[i++] = expr();
+                if (!consume(","))
+                    break;
+            }
+            expect(")");
+            node->nargs = i;
             return node;
         }
 

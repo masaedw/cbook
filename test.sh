@@ -16,7 +16,6 @@ assert() {
   fi
 }
 
-assert 5 "noargtest();"
 assert 0 "0;"
 assert 42 "42;"
 assert 21 "5+20-4;"
@@ -66,5 +65,16 @@ assert 0 "if(1) {0;} else {1;}"
 assert 1 "{ return 1; 5;}"
 assert 5 "for (;;) { return 5; }"
 assert 5 "while (1) { return 5; }"
+assert 5 "noargtest();"
+assert 1 "argtest1(1);"
+assert 2 "argtest2(1, 2);"
+assert 3 "argtest3(1, 2, 3);"
+assert 4 "argtest4(1, 2, 3, 4);"
+assert 5 "argtest5(1, 2, 3, 4, 5);"
+assert 6 "argtest6(1, 2, 3, 4, 5, 6);"
+assert 7 "argtest7(1, 2, 3, 4, 5, 6, 7);"
+assert 8 "argtest8(1, 2, 3, 4, 5, 6, 7, 8);"
+# parse error
+# assert 9 "argtest9(1, 2, 3, 4, 5, 6, 7, 8, 9);"
 
 echo OK

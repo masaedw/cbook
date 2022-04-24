@@ -70,6 +70,8 @@ struct Node
     Node **body;   // blockの場合のみ使う
     char *name;    // 関数の名前
     int len;       // 名前の長さ
+    Node *args[8]; // 関数の引数
+    int nargs;     // 引数の個数
 };
 
 // パース結果

@@ -159,6 +159,15 @@ void gen(Node *node)
         }
         return;
     case ND_CALL:
+        for (int i = 0; i < node->nargs; i++)
+        {
+            gen(node->args[i]);
+        }
+        for (int i = 0; i < node->nargs; i++)
+        {
+            printf("  ldur X%d, [SP, #%d]\n", i, 16 * (node->nargs - i - 1));
+        }
+        printf("  add sp, sp, #%d\n", 16 * node->nargs);
         printf("  bl _%.*s\n", node->len, node->name);
         printf("  str X0, [SP, #-16]!\n");
         return;
