@@ -42,6 +42,18 @@ LVar *find_lvar(Token *tok)
     return NULL;
 }
 
+// 変数を追加する。
+LVar *new_lvar(Token *tok)
+{
+    LVar *lvar = calloc(1, sizeof(LVar));
+    lvar->next = locals;
+    lvar->name = tok->str;
+    lvar->len = tok->len;
+    lvar->offset = locals->offset + 8;
+    locals = lvar;
+    return lvar;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op)
@@ -254,6 +266,24 @@ Node *new_node_num(int val)
     return node;
 }
 
+Node *new_node_lvar(Token *tok)
+{
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+
+    LVar *lvar = find_lvar(tok);
+    if (lvar)
+    {
+        node->offset = lvar->offset;
+    }
+    else
+    {
+        lvar = new_lvar(tok);
+        node->offset = lvar->offset;
+    }
+    return node;
+}
+
 Node *expr();
 
 Node *primary()
@@ -293,25 +323,7 @@ Node *primary()
             return node;
         }
 
-        Node *node = calloc(1, sizeof(Node));
-        node->kind = ND_LVAR;
-
-        LVar *lvar = find_lvar(tok);
-        if (lvar)
-        {
-            node->offset = lvar->offset;
-        }
-        else
-        {
-            lvar = calloc(1, sizeof(LVar));
-            lvar->next = locals;
-            lvar->name = tok->str;
-            lvar->len = tok->len;
-            lvar->offset = locals->offset + 8;
-            node->offset = lvar->offset;
-            locals = lvar;
-        }
-        return node;
+        return new_node_lvar(tok);
     }
 
     // そうでなければ数値のはず
@@ -507,7 +519,20 @@ Node *func_definition()
     node->len = ident->len;
     node->body = calloc(100, sizeof(Node *));
     expect("(");
-    expect(")");
+
+    if (!consume(")"))
+    {
+        int i = 0;
+        while (i < 8)
+        {
+            node->args[i++] = new_node_lvar(expect_ident());
+            if (!consume(","))
+                break;
+        }
+        expect(")");
+        node->nargs = i;
+    }
+
     expect("{");
     int i = 0;
     while (!consume("}"))

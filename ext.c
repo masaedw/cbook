@@ -6,6 +6,11 @@ int noargtest()
     return 5;
 }
 
+void print_int(int a)
+{
+    printf("%d\n", a);
+}
+
 int argtest1(int a)
 {
     printf("%d\n", a);

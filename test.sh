@@ -77,5 +77,7 @@ assert 8 "main() { argtest8(1, 2, 3, 4, 5, 6, 7, 8); }"
 # parse error
 # assert 9 "main() { argtest9(1, 2, 3, 4, 5, 6, 7, 8, 9); }"
 assert 5 "f() { return 5; } main() { return f(); }"
+assert 8 "add(a, b) { return a + b; } sub(x, y) { return x - y; } main() { return sub(add(3, 8), 3); }"
+
 
 echo OK

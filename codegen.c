@@ -173,8 +173,6 @@ void gen(Node *node)
         return;
     case ND_FUNDEF:
     {
-        // TODO: args
-
         printf("  .global  _main  ; -- start function %.*s\n", node->len, node->name);
         printf("  .p2align  2\n");
         printf("_%.*s:\n", node->len, node->name);
@@ -189,6 +187,10 @@ void gen(Node *node)
         printf("  stp LR, FP, [SP, #-16]!\n");
         printf("  sub FP, SP, #%d\n", offset);
         printf("  sub SP, SP, #%d\n", offset);
+        for (int i = 0; i < node->nargs; i++)
+        {
+            printf("  stur X%d, [FP, #%d]\n", i, node->args[i]->offset);
+        }
 
         // 先頭の式から順にコード生成
         for (int i = 0; node->body[i]; i++)
