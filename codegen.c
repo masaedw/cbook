@@ -20,6 +20,16 @@ int new_label()
     return count++;
 }
 
+// FPにoffsetを足したものをスタックにプッシュする
+void gen_lval(Node *node)
+{
+    if (node->kind != ND_LVAR)
+        error("代入の左辺値が変数ではありません");
+
+    printf("  add X0, FP, #%d\n", node->offset);
+    printf("  str X0, [SP, #-16]!\n");
+}
+
 void gen(Node *node)
 {
     switch (node->kind)
@@ -211,6 +221,15 @@ void gen(Node *node)
         printf("; -- end function %.*s\n", node->len, node->name);
         return;
     }
+    case ND_ADDR:
+        gen_lval(node->lhs);
+        return;
+    case ND_DEREF:
+        gen(node->lhs);
+        printf("  ldr X0, [SP], #16\n");
+        printf("  ldur X0, [X0, #0]\n");
+        printf("  str X0, [SP, #-16]!\n");
+        return;
     }
 
     gen(node->lhs);

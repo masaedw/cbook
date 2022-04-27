@@ -51,6 +51,8 @@ typedef enum
     ND_BLOCK,  // block
     ND_CALL,   // function call
     ND_FUNDEF, // function definition
+    ND_ADDR,   // &
+    ND_DEREF,  // *
 } NodeKind;
 
 typedef struct Node Node;

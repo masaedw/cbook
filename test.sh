@@ -81,5 +81,6 @@ assert 8 "main() { argtest8(1, 2, 3, 4, 5, 6, 7, 8); }"
 assert 5 "f() { return 5; } main() { return f(); }"
 assert 8 "add(a, b) { return a + b; } sub(x, y) { return x - y; } main() { return sub(add(3, 8), 3); }"
 assert 89 "fib(n) { if (n == 0) { return 0; } if (n == 1) { return 1; } return fib(n - 2) + fib(n - 1); } main() { return fib(11); }"
+assert 3 "main() { x = 3; y = 5; z = &y - 8; return *z; }"
 
 echo OK

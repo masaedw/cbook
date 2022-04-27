@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/9cc",
             "args": [
-                "main(){1;2;3;}"
+                "main() { a = 1; b = &a; *b = 5; return a; }"
             ],
             "stopAtEntry": true,
             "cwd": "${fileDirname}",

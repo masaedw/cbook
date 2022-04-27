@@ -184,7 +184,8 @@ void tokenize()
 
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' ||
             *p == '<' || *p == '>' ||
-            *p == '=' || *p == ';' || *p == '{' || *p == '}' || *p == ',')
+            *p == '=' || *p == ';' || *p == '{' || *p == '}' || *p == ',' ||
+            *p == '&')
         {
             cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
@@ -334,14 +335,31 @@ Node *unary()
 {
     if (consume("+"))
         return primary();
+
     if (consume("-"))
     {
         Node *node = primary();
         node->val = -node->val;
         return node;
     }
-    else
-        return primary();
+
+    if (consume("*"))
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_DEREF;
+        node->lhs = unary();
+        return node;
+    }
+
+    if (consume("&"))
+    {
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_ADDR;
+        node->lhs = unary();
+        return node;
+    }
+
+    return primary();
 }
 
 Node *mul()
