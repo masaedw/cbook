@@ -233,6 +233,13 @@ void tokenize()
             continue;
         }
 
+        if (is_token(p, "int"))
+        {
+            cur = new_token(TK_RESERVED, cur, p, 3);
+            p += 3;
+            continue;
+        }
+
         if ('a' <= *p && *p <= 'z')
         {
             char *q = p + 1;
@@ -530,6 +537,7 @@ Node *stmt()
 
 Node *func_definition()
 {
+    expect("int");
     Token *ident = expect_ident();
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_FUNDEF;
@@ -543,6 +551,7 @@ Node *func_definition()
         int i = 0;
         while (i < 8)
         {
+            expect("int");
             node->args[i++] = new_node_lvar(expect_ident());
             if (!consume(","))
                 break;
