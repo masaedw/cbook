@@ -230,6 +230,10 @@ void gen(Node *node)
         printf("  ldur X0, [X0, #0]\n");
         printf("  str X0, [SP, #-16]!\n");
         return;
+    case ND_VARDEF:
+        // dummy push
+        printf("  str XZR, [SP, #-16]!\n");
+        return;
     }
 
     gen(node->lhs);

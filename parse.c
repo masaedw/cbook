@@ -276,19 +276,15 @@ Node *new_node_num(int val)
 
 Node *new_node_lvar(Token *tok)
 {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
-
     LVar *lvar = find_lvar(tok);
-    if (lvar)
-    {
-        node->offset = lvar->offset;
-    }
-    else
+    if (!lvar)
     {
         lvar = new_lvar(tok);
-        node->offset = lvar->offset;
     }
+
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->offset = lvar->offset;
     return node;
 }
 
@@ -331,7 +327,16 @@ Node *primary()
             return node;
         }
 
-        return new_node_lvar(tok);
+        LVar *lvar = find_lvar(tok);
+        if (!lvar)
+        {
+            error_at(tok->str, "変数が宣言されていません。");
+        }
+
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_LVAR;
+        node->offset = lvar->offset;
+        return node;
     }
 
     // そうでなければ数値のはず
@@ -525,6 +530,14 @@ Node *stmt()
         }
         node->body[i] = NULL;
         return node;
+    }
+    else if (consume("int"))
+    {
+        LVar *lvar = new_lvar(expect_ident());
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_VARDEF;
+        node->name = lvar->name;
+        node->len = lvar->len;
     }
     else
     {

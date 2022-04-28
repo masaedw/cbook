@@ -53,6 +53,7 @@ typedef enum
     ND_FUNDEF, // function definition
     ND_ADDR,   // &
     ND_DEREF,  // *
+    ND_VARDEF, // variable definition
 } NodeKind;
 
 typedef struct Node Node;
