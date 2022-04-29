@@ -11,7 +11,6 @@ int main(int argc, char **argv)
     }
 
     // トークナイズしてパースする
-    locals = calloc(1, sizeof(LVar));
     user_input = argv[1];
     tokenize();
     program();

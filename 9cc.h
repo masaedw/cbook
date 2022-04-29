@@ -56,6 +56,17 @@ typedef enum
     ND_VARDEF, // variable definition
 } NodeKind;
 
+typedef struct LVar LVar;
+
+// ローカル変数の型
+struct LVar
+{
+    LVar *next; // 次の変数かNULL
+    char *name; // 変数の名前
+    int len;    // 名前の長さ
+    int offset; // RBPからのオフセット
+};
+
 typedef struct Node Node;
 
 // 抽象構文木のノードの型
@@ -76,24 +87,11 @@ struct Node
     int len;       // 名前の長さ
     Node *args[8]; // 関数の引数
     int nargs;     // 引数の個数
+    LVar *locals;  // ローカル変数
 };
 
 // パース結果
 extern Node *code[100];
-
-typedef struct LVar LVar;
-
-// ローカル変数の型
-struct LVar
-{
-    LVar *next; // 次の変数かNULL
-    char *name; // 変数の名前
-    int len;    // 名前の長さ
-    int offset; // RBPからのオフセット
-};
-
-// ローカル変数
-extern LVar *locals;
 
 // user_inputをトークナイズする
 void tokenize();

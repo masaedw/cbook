@@ -15,8 +15,8 @@ char *user_input;
 // パース結果
 Node *code[100];
 
-// ローカル変数
-LVar *locals;
+// 今読んでいる関数定義
+Node *fundef;
 
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...)
@@ -36,7 +36,7 @@ void error_at(char *loc, char *fmt, ...)
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 LVar *find_lvar(Token *tok)
 {
-    for (LVar *var = locals; var; var = var->next)
+    for (LVar *var = fundef->locals; var; var = var->next)
         if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
             return var;
     return NULL;
@@ -46,11 +46,11 @@ LVar *find_lvar(Token *tok)
 LVar *new_lvar(Token *tok)
 {
     LVar *lvar = calloc(1, sizeof(LVar));
-    lvar->next = locals;
+    lvar->next = fundef->locals;
     lvar->name = tok->str;
     lvar->len = tok->len;
-    lvar->offset = locals->offset + 8;
-    locals = lvar;
+    lvar->offset = fundef->locals->offset + 8;
+    fundef->locals = lvar;
     return lvar;
 }
 
@@ -470,6 +470,7 @@ Node *stmt()
         node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
+        node->rhs = fundef;
     }
     else if (consume_token(TK_IF))
     {
@@ -557,6 +558,8 @@ Node *func_definition()
     node->name = ident->str;
     node->len = ident->len;
     node->body = calloc(100, sizeof(Node *));
+    node->locals = calloc(1, sizeof(LVar *));
+    fundef = node;
     expect("(");
 
     if (!consume(")"))
@@ -580,6 +583,7 @@ Node *func_definition()
         node->body[i++] = stmt();
     }
     node->body[i] = NULL;
+    fundef = NULL;
     return node;
 }
 

@@ -54,7 +54,7 @@ void gen(Node *node)
         return;
     case ND_RETURN:
         gen(node->lhs);
-        int offset = locals->offset + 8;
+        int offset = node->rhs->locals->offset + 8;
         if (offset % 16 != 0)
         {
             offset += 8;
@@ -189,7 +189,7 @@ void gen(Node *node)
 
         // プロローグ
         // 変数分の領域を16バイト境界で確保する
-        int offset = locals->offset + 8;
+        int offset = node->locals->offset + 8;
         if (offset % 16 != 0)
         {
             offset += 8;
