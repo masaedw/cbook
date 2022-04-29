@@ -70,6 +70,9 @@ struct Type
     struct Type *ptr_to;
 };
 
+// 型ごとのサイズ
+int get_size(Type *type);
+
 typedef struct LVar LVar;
 
 // ローカル変数の型

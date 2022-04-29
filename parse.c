@@ -405,13 +405,7 @@ Node *unary()
     if (consume_token(TK_SIZEOF))
     {
         Node *node = unary();
-        switch (node->type->ty)
-        {
-        case INT:
-            return new_node_num(4);
-        case PTR:
-            return new_node_num(8);
-        }
+        return new_node_num(get_size(node->type));
     }
 
     if (consume("+"))

@@ -31,6 +31,17 @@ char *size_prefix(Node *node)
     }
 }
 
+int get_size(Type *type)
+{
+    switch (type->ty)
+    {
+    case INT:
+        return 4;
+    case PTR:
+        return 8;
+    }
+}
+
 void gen_lval(Node *node)
 {
     switch (node->kind)
@@ -268,34 +279,18 @@ void gen(Node *node)
     case ND_ADD:
         if (node->lhs->type->ty == PTR)
         {
-            switch (node->lhs->type->ptr_to->ty)
-            {
-            case INT:
-                // 4倍する
-                printf("  lsl x0, x0, #2\n");
-                break;
-            default:
-                // 8倍する
-                printf("  lsl x0, x0, #3\n");
-                break;
-            }
+            int size = get_size(node->lhs->type->ptr_to);
+            printf("  mov x2, #%d\n", size);
+            printf("  mul x0, x0, x2\n");
         }
         printf("  add x0, x1, x0\n");
         break;
     case ND_SUB:
         if (node->lhs->type->ty == PTR)
         {
-            switch (node->lhs->type->ptr_to->ty)
-            {
-            case INT:
-                // 4倍する
-                printf("  lsl x0, x0, #2\n");
-                break;
-            default:
-                // 8倍する
-                printf("  lsl x0, x0, #3\n");
-                break;
-            }
+            int size = get_size(node->lhs->type->ptr_to);
+            printf("  mov x2, #%d\n", size);
+            printf("  mul x0, x0, x2\n");
         }
         printf("  sub x0, x1, x0\n");
         break;
