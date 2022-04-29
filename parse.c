@@ -26,9 +26,10 @@ relational      = add ("<" add | "<=" add | ">" add | ">=" add)*
 add             = mul ("+" mul | "-" mul)*
 mul             = unary ("*" unary | "/" unary)*
 unary           = sizeof unary
-                | ("+" | "-")? primary
+                | ("+" | "-")? indexing
                 | "*" unary
                 | "&" unary
+indexing        = primary ("[" expr "]")
 primary         = num
                 | ident ("(" (ident ("," ident)*)? ")")?
                 | "(" expr ")"
@@ -339,6 +340,16 @@ Node *new_node_num(int val)
     return node;
 }
 
+Node *new_node_deref(Node *lhs, Token *tok)
+{
+    if (lhs->type->ty != PTR && lhs->type->ty != ARRAY)
+    {
+        error_at(tok->str, "ポインタまたは配列ではありません");
+    }
+
+    return new_node(ND_DEREF, lhs, NULL, lhs->type->ptr_to);
+}
+
 Node *new_node_lvar(Token *tok, Type *type)
 {
     LVar *lvar = find_lvar(tok);
@@ -412,6 +423,17 @@ Node *primary()
     return new_node_num(expect_number());
 }
 
+Node *indexing()
+{
+    Node *node = primary();
+    if (consume("["))
+    {
+        node = new_node_deref(new_node(ND_ADD, node, expr(), node->type), token);
+        expect("]");
+    }
+    return node;
+}
+
 Node *unary()
 {
     if (consume_token(TK_SIZEOF))
@@ -421,28 +443,19 @@ Node *unary()
     }
 
     if (consume("+"))
-        return primary();
+        return indexing();
 
     if (consume("-"))
     {
-        Node *node = primary();
-        // TODO: primaryが変数の場合、valはないのでおかしくなる a = -a; のようなパターンを検討する
+        Node *node = indexing();
+        // TODO: indexingが変数の場合、valはないのでおかしくなる a = -a; のようなパターンを検討する
         node->val = -node->val;
         return node;
     }
 
     if (consume("*"))
     {
-        Node *node = calloc(1, sizeof(Node));
-        node->kind = ND_DEREF;
-        Token *tok = token;
-        node->lhs = unary();
-        if (node->lhs->type->ty != PTR && node->lhs->type->ty != ARRAY)
-        {
-            error_at(tok->str, "ポインタまたは配列ではありません");
-        }
-        node->type = node->lhs->type->ptr_to;
-        return node;
+        return new_node_deref(unary(), token);
     }
 
     if (consume("&"))
@@ -454,7 +467,7 @@ Node *unary()
         return node;
     }
 
-    return primary();
+    return indexing();
 }
 
 Node *mul()
