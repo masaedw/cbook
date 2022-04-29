@@ -9,6 +9,7 @@ typedef enum
     TK_ELSE,     // else
     TK_WHILE,    // while
     TK_FOR,      // for
+    TK_SIZEOF,   // sizeof
     TK_EOF,      // 入力の終わりを表すトークン
 } TokenKind;
 
@@ -102,7 +103,7 @@ struct Node
     Node *args[8]; // 関数の引数
     int nargs;     // 引数の個数
     LVar *locals;  // ローカル変数
-    Type *rtype;   // 返り値の型
+    Type *type;    // 値の型
 };
 
 // パース結果

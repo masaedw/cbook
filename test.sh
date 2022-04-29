@@ -16,6 +16,28 @@ assert() {
   fi
 }
 
+assert_fail() {
+  input="$1"
+
+  ./9cc "$input" > tmp.s
+  result="$?"
+
+  if [ "$result" != 0 ]; then
+    echo "=> failure as expected"
+  else
+    echo "expected to fail, but succeeded"
+    exit 1
+  fi
+}
+
+assert 4 "int main() { return sizeof(5); }"
+assert 8 "int main() { int *a; return sizeof(a); }"
+assert 8 "int main() { int a; return sizeof(&a); }"
+assert 4 "int main() { int a; return sizeof(*&a); }"
+assert 4 "int main() { return sizeof(5 + 3); }"
+assert 4 "int main() { return sizeof(main()); }"
+assert_fail "main() {}"
+
 assert 0 "int main() { 0; }"
 assert 42 "int main() { 42; }"
 assert 21 "int main() { 5+20-4; }"
@@ -81,7 +103,7 @@ assert 8 "int main() { argtest8(1, 2, 3, 4, 5, 6, 7, 8); }"
 assert 5 "int f() { return 5; } int main() { return f(); }"
 assert 8 "int add(int a, int b) { return a + b; } int sub(int x, int y) { return x - y; } int main() { return sub(add(3, 8), 3); }"
 assert 89 "int fib(int n) { if (n == 0) { return 0; } if (n == 1) { return 1; } return fib(n - 2) + fib(n - 1); } int main() { return fib(11); }"
-assert 3 "int main() { int x; x = 3; int y; y = 5; int z; z = &y - 8; return *z; }"
+assert 3 "int main() { int x; x = 3; int y; y = 5; int *z; z = &y - 8; return *z; }"
 assert 0 "int main() { int **a; int *b; int c; c = 0; return c; }"
 assert 3 "int main() { int x; int *y; y = &x; *y = 3; return x; }"
 

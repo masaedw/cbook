@@ -24,8 +24,8 @@ equality        = relational ("==" relational | "!=" relational)*
 relational      = add ("<" add | "<=" add | ">" add | ">=" add)*
 add             = mul ("+" mul | "-" mul)*
 mul             = unary ("*" unary | "/" unary)*
-unary           = "+"? primary
-                | "-"? primary
+unary           = sizeof unary
+                | ("+" | "-")? primary
                 | "*" unary
                 | "&" unary
 primary         = num
@@ -269,6 +269,13 @@ void tokenize()
             continue;
         }
 
+        if (is_token(p, "sizeof"))
+        {
+            cur = new_token(TK_SIZEOF, cur, p, 6);
+            p += 6;
+            continue;
+        }
+
         if ('a' <= *p && *p <= 'z')
         {
             char *q = p + 1;
@@ -286,12 +293,28 @@ void tokenize()
     token = head.next;
 }
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
+Type *new_type_int()
+{
+    Type *type = calloc(1, sizeof(Type));
+    type->ty = INT;
+    return type;
+}
+
+Type *new_type_ptr_to(Type *type)
+{
+    Type *ntype = calloc(1, sizeof(Type));
+    ntype->ty = PTR;
+    ntype->ptr_to = type;
+    return ntype;
+}
+
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs, Type *type)
 {
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
     node->lhs = lhs;
     node->rhs = rhs;
+    node->type = type;
     return node;
 }
 
@@ -300,6 +323,7 @@ Node *new_node_num(int val)
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_NUM;
     node->val = val;
+    node->type = new_type_int();
     return node;
 }
 
@@ -314,6 +338,7 @@ Node *new_node_lvar(Token *tok, Type *type)
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_LVAR;
     node->offset = lvar->offset;
+    node->type = lvar->type;
     return node;
 }
 
@@ -338,6 +363,8 @@ Node *primary()
             node->kind = ND_CALL;
             node->name = tok->str;
             node->len = tok->len;
+            // TODO: 関数の型を探す
+            node->type = new_type_int();
 
             if (consume(")"))
             {
@@ -365,6 +392,7 @@ Node *primary()
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_LVAR;
         node->offset = lvar->offset;
+        node->type = lvar->type;
         return node;
     }
 
@@ -374,12 +402,25 @@ Node *primary()
 
 Node *unary()
 {
+    if (consume_token(TK_SIZEOF))
+    {
+        Node *node = unary();
+        switch (node->type->ty)
+        {
+        case INT:
+            return new_node_num(4);
+        case PTR:
+            return new_node_num(8);
+        }
+    }
+
     if (consume("+"))
         return primary();
 
     if (consume("-"))
     {
         Node *node = primary();
+        // TODO: primaryが変数の場合、valはないのでおかしくなる a = -a; のようなパターンを検討する
         node->val = -node->val;
         return node;
     }
@@ -388,7 +429,13 @@ Node *unary()
     {
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_DEREF;
+        Token *tok = token;
         node->lhs = unary();
+        if (node->lhs->type->ty != PTR)
+        {
+            error_at(tok->str, "ポインタではありません");
+        }
+        node->type = node->lhs->type->ptr_to;
         return node;
     }
 
@@ -397,6 +444,7 @@ Node *unary()
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_ADDR;
         node->lhs = unary();
+        node->type = new_type_ptr_to(node->lhs->type);
         return node;
     }
 
@@ -410,9 +458,9 @@ Node *mul()
     for (;;)
     {
         if (consume("*"))
-            node = new_node(ND_MUL, node, unary());
+            node = new_node(ND_MUL, node, unary(), node->type);
         else if (consume("/"))
-            node = new_node(ND_DIV, node, unary());
+            node = new_node(ND_DIV, node, unary(), node->type);
         else
             return node;
     }
@@ -425,9 +473,9 @@ Node *add()
     for (;;)
     {
         if (consume("+"))
-            node = new_node(ND_ADD, node, mul());
+            node = new_node(ND_ADD, node, mul(), node->type);
         else if (consume("-"))
-            node = new_node(ND_SUB, node, mul());
+            node = new_node(ND_SUB, node, mul(), node->type);
         else
             return node;
     }
@@ -440,19 +488,19 @@ Node *relational()
     for (;;)
     {
         if (consume("<"))
-            node = new_node(ND_LT, node, add());
+            node = new_node(ND_LT, node, add(), new_type_int());
         else if (consume("<="))
-            node = new_node(ND_LE, node, add());
+            node = new_node(ND_LE, node, add(), new_type_int());
         else if (consume(">"))
         {
-            node = new_node(ND_LT, node, add());
+            node = new_node(ND_LT, node, add(), new_type_int());
             Node *tmp = node->lhs;
             node->lhs = node->rhs;
             node->rhs = tmp;
         }
         else if (consume(">="))
         {
-            node = new_node(ND_LE, node, add());
+            node = new_node(ND_LE, node, add(), new_type_int());
             Node *tmp = node->lhs;
             node->lhs = node->rhs;
             node->rhs = tmp;
@@ -469,9 +517,9 @@ Node *equality()
     for (;;)
     {
         if (consume("=="))
-            node = new_node(ND_EQ, node, relational());
+            node = new_node(ND_EQ, node, relational(), new_type_int());
         else if (consume("!="))
-            node = new_node(ND_NE, node, relational());
+            node = new_node(ND_NE, node, relational(), new_type_int());
         else
             return node;
     }
@@ -481,21 +529,13 @@ Node *assign()
 {
     Node *node = equality();
     if (consume("="))
-        node = new_node(ND_ASSIGN, node, assign());
+        node = new_node(ND_ASSIGN, node, assign(), node->type);
     return node;
 }
 
 Node *expr()
 {
     return assign();
-}
-
-Type *new_ptr_to(Type *type)
-{
-    Type *ntype = calloc(1, sizeof(Type));
-    ntype->ty = PTR;
-    ntype->ptr_to = type;
-    return ntype;
 }
 
 Type *consume_type()
@@ -510,7 +550,7 @@ Type *consume_type()
 
     while (consume("*"))
     {
-        type = new_ptr_to(type);
+        type = new_type_ptr_to(type);
     }
 
     return type;
@@ -630,7 +670,7 @@ Node *func_definition()
     node->len = ident->len;
     node->body = calloc(100, sizeof(Node *));
     node->locals = calloc(1, sizeof(LVar *));
-    node->rtype = ty;
+    node->type = ty;
     fundef = node;
     expect("(");
 
