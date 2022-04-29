@@ -30,12 +30,6 @@ assert_fail() {
   fi
 }
 
-assert 4 "int main() { return sizeof(5); }"
-assert 8 "int main() { int *a; return sizeof(a); }"
-assert 8 "int main() { int a; return sizeof(&a); }"
-assert 4 "int main() { int a; return sizeof(*&a); }"
-assert 4 "int main() { return sizeof(5 + 3); }"
-assert 4 "int main() { return sizeof(main()); }"
 assert_fail "main() {}"
 
 assert 0 "int main() { 0; }"
@@ -72,6 +66,7 @@ assert 1 "int main() { if (1) 1; else 2; }"
 assert 2 "int main() { int a; if (0) a = 1; else a = 2; a; }"
 assert 1 "int main() { int a; a = 5; a = a - 4; a; }"
 assert 1 "int main() { int a; a = 5; if (a == 5) return 1; else 5; }"
+assert 1 "int main() { int a; a = 5; if (a == 5) return 1; else 5; }"
 assert 1 "int main() { int a; a = 5; if (a == 0) return 0; else a = a - 4; a; }"
 assert 0 "int main() { int a; while (0) a = 5; 0; }"
 assert 0 "int main() { while (1) return 0; 1; }"
@@ -103,8 +98,22 @@ assert 8 "int main() { argtest8(1, 2, 3, 4, 5, 6, 7, 8); }"
 assert 5 "int f() { return 5; } int main() { return f(); }"
 assert 8 "int add(int a, int b) { return a + b; } int sub(int x, int y) { return x - y; } int main() { return sub(add(3, 8), 3); }"
 assert 89 "int fib(int n) { if (n == 0) { return 0; } if (n == 1) { return 1; } return fib(n - 2) + fib(n - 1); } int main() { return fib(11); }"
-assert 3 "int main() { int x; x = 3; int y; y = 5; int *z; z = &y - 8; return *z; }"
+# スタック上の並びはポインタ演算で取れるとは限らない
+# assert 3 "int main() { int x; x = 3; int y; y = 5; int *z; z = &y - 8; return *z; }"
 assert 0 "int main() { int **a; int *b; int c; c = 0; return c; }"
 assert 3 "int main() { int x; int *y; y = &x; *y = 3; return x; }"
+
+# step 19
+assert 8 "int main() { int *p; alloc4(&p, 1, 2, 4, 8); int *q; q = p + 2; print_int(*q); q = p + 3; return *q; }"
+# intは32ビット分だけ保存する
+assert 4 "int main() { int *p; alloc4(&p, 1, 2, 4, 8); *(p + 1) = 2147483647; return *(p + 2); }"
+
+# step 20
+assert 4 "int main() { return sizeof(5); }"
+assert 8 "int main() { int *a; return sizeof(a); }"
+assert 8 "int main() { int a; return sizeof(&a); }"
+assert 4 "int main() { int a; return sizeof(*&a); }"
+assert 4 "int main() { return sizeof(5 + 3); }"
+assert 4 "int main() { return sizeof(main()); }"
 
 echo OK

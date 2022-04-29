@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 int noargtest()
 {
@@ -57,4 +58,13 @@ int argtest8(int a, int b, int c, int d, int e, int f, int g, int h)
 {
     printf("%d %d %d %d %d %d %d %d\n", a, b, c, d, e, f, g, h);
     return 8;
+}
+
+void alloc4(int **ary, int a, int b, int c, int d)
+{
+    int *x = *ary = malloc(sizeof(int) * 4);
+    x[0] = a;
+    x[1] = b;
+    x[2] = c;
+    x[3] = d;
 }

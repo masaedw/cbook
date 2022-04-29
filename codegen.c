@@ -20,6 +20,17 @@ int new_label()
     return count++;
 }
 
+char *size_prefix(Node *node)
+{
+    switch (node->type->ty)
+    {
+    case INT:
+        return "w";
+    case PTR:
+        return "x";
+    }
+}
+
 void gen_lval(Node *node)
 {
     switch (node->kind)
@@ -57,7 +68,7 @@ void gen(Node *node)
 
         printf("  ldr x0, [sp], #16\n"); // rhs
         printf("  ldr x1, [sp], #16\n"); // lhs
-        printf("  stur x0, [x1, #0]\n");
+        printf("  stur %s0, [x1, #0]\n", size_prefix(node->lhs));
         printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_RETURN:
@@ -247,17 +258,45 @@ void gen(Node *node)
     gen(node->lhs);
     gen(node->rhs);
 
-    printf("  ldr x0, [sp], #16\n"); // rhs
-    printf("  ldr x1, [sp], #16\n"); // lhs
+    printf("  ldr %s0, [sp], #16\n", size_prefix(node->rhs));
+    printf("  ldr %s1, [sp], #16\n", size_prefix(node->lhs));
 
     // x1 op x0
 
     switch (node->kind)
     {
     case ND_ADD:
+        if (node->lhs->type->ty == PTR)
+        {
+            switch (node->lhs->type->ptr_to->ty)
+            {
+            case INT:
+                // 4倍する
+                printf("  lsl x0, x0, #2\n");
+                break;
+            default:
+                // 8倍する
+                printf("  lsl x0, x0, #3\n");
+                break;
+            }
+        }
         printf("  add x0, x1, x0\n");
         break;
     case ND_SUB:
+        if (node->lhs->type->ty == PTR)
+        {
+            switch (node->lhs->type->ptr_to->ty)
+            {
+            case INT:
+                // 4倍する
+                printf("  lsl x0, x0, #2\n");
+                break;
+            default:
+                // 8倍する
+                printf("  lsl x0, x0, #3\n");
+                break;
+            }
+        }
         printf("  sub x0, x1, x0\n");
         break;
     case ND_MUL:
