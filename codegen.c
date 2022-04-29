@@ -62,6 +62,23 @@ void gen_lval(Node *node)
     }
 }
 
+size_t local_variables_offset(Node *fundef)
+{
+    size_t size = 0;
+    if (fundef->locals->type)
+    {
+        size = get_size(fundef->locals->type);
+    }
+    size_t offset = fundef->locals->offset + size;
+    size_t rem = offset % 16;
+    if (rem != 0)
+    {
+        offset += 16 - rem;
+    }
+    printf("; last_size %lu\n", size);
+    return offset;
+}
+
 void gen(Node *node)
 {
     switch (node->kind)
@@ -73,6 +90,11 @@ void gen(Node *node)
     case ND_LVAR:
         if (node->kind != ND_LVAR)
             error("代入の左辺値が変数ではありません");
+        if (node->type->ty == ARRAY)
+        {
+            gen_lval(node);
+            return;
+        }
         printf("  ldur %s0, [fp, #%d]\n", size_prefix(node), node->offset);
         printf("  str x0, [sp, #-16]!\n");
         return;
@@ -87,16 +109,10 @@ void gen(Node *node)
         return;
     case ND_RETURN:
         gen(node->lhs);
-        int offset = node->rhs->locals->offset + 8;
-        int rem = offset % 16;
-        if (rem != 0)
-        {
-            offset += 16 - rem;
-        }
         printf("  ldr x0, [sp], #16\n");
         // エピローグ
         printf("  mov sp, fp\n");
-        printf("  add sp, sp, #%d\n", offset);
+        printf("  add sp, sp, #%lu\n", local_variables_offset(node->rhs));
         printf("  ldp lr, fp, [sp], #16\n");
         printf("  ret\n");
         return;
@@ -136,6 +152,8 @@ void gen(Node *node)
     }
     case ND_WHILE:
     {
+        // while (expr0) lhs
+
         // 条件式の結果をスタックトップに残す
         int label = new_label();
         printf("LBEGIN_%03d:\n", label);
@@ -147,8 +165,8 @@ void gen(Node *node)
         printf("  ldr x0, [sp], #16\n");
         printf("  ; start while body %03d\n", label);
         gen(node->lhs);
-        printf("  ; end while body %03d\n", label);
         printf("  ldr x0, [sp], #16\n");
+        printf("  ; end while body %03d\n", label);
         printf("  b LBEGIN_%03d\n", label);
         printf("LEND_%03d:\n", label);
         return;
@@ -175,18 +193,18 @@ void gen(Node *node)
             printf("  ; end for expr1 %03d\n", label);
             printf("  ldur x0, [sp, #0]\n");
             printf("  cbz x0, LEND_%03d\n", label);
+            printf("  ldr x0, [sp], #16\n");
         }
-        printf("  ldr x0, [sp], #16\n");
         printf("  ; start for lhs %03d\n", label);
         gen(node->lhs);
-        printf("  ; end for lhs %03d\n", label);
         printf("  ldr x0, [sp], #16\n");
+        printf("  ; end for lhs %03d\n", label);
         if (node->rhs)
         {
             printf("  ; start for rhs %03d\n", label);
             gen(node->rhs);
-            printf("  ; end for rhs %03d\n", label);
             printf("  ldr x0, [sp], #16\n");
+            printf("  ; end for rhs %03d\n", label);
         }
         printf("  b LBEGIN_%03d\n", label);
         printf("LEND_%03d:\n", label);
@@ -223,15 +241,10 @@ void gen(Node *node)
 
         // プロローグ
         // 変数分の領域を16バイト境界で確保する
-        int offset = node->locals->offset + 8;
-        int rem = offset % 16;
-        if (rem != 0)
-        {
-            offset += 16 - rem;
-        }
+        size_t offset = local_variables_offset(node);
         printf("  stp lr, fp, [sp, #-16]!\n");
-        printf("  sub fp, sp, #%d\n", offset);
-        printf("  sub sp, sp, #%d\n", offset);
+        printf("  sub fp, sp, #%lu\n", offset);
+        printf("  sub sp, sp, #%lu\n", offset);
         for (int i = 0; i < node->nargs; i++)
         {
             printf("  stur %s%d, [fp, #%d]\n", size_prefix(node->args[i]), i, node->args[i]->offset);
@@ -250,7 +263,7 @@ void gen(Node *node)
         // エピローグ
         // 最後の式の結果がx0に残っているのでそれが返り値になる
         printf("  mov sp, fp\n");
-        printf("  add sp, sp, #%d\n", offset);
+        printf("  add sp, sp, #%lu\n", offset);
         printf("  ldp lr, fp, [sp], #16\n");
         printf("  ret\n");
         printf("; -- end function %.*s\n", node->len, node->name);
