@@ -490,6 +490,14 @@ Node *expr()
     return assign();
 }
 
+Type *new_ptr_to(Type *type)
+{
+    Type *ntype = calloc(1, sizeof(Type));
+    ntype->ty = PTR;
+    ntype->ptr_to = type;
+    return ntype;
+}
+
 Type *consume_type()
 {
     if (!consume("int"))
@@ -499,6 +507,12 @@ Type *consume_type()
 
     Type *type = calloc(1, sizeof(Type));
     type->ty = INT;
+
+    while (consume("*"))
+    {
+        type = new_ptr_to(type);
+    }
+
     return type;
 }
 

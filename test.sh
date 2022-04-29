@@ -82,5 +82,6 @@ assert 5 "int f() { return 5; } int main() { return f(); }"
 assert 8 "int add(int a, int b) { return a + b; } int sub(int x, int y) { return x - y; } int main() { return sub(add(3, 8), 3); }"
 assert 89 "int fib(int n) { if (n == 0) { return 0; } if (n == 1) { return 1; } return fib(n - 2) + fib(n - 1); } int main() { return fib(11); }"
 assert 3 "int main() { int x; x = 3; int y; y = 5; int z; z = &y - 8; return *z; }"
+assert 0 "int main() { int **a; int *b; int c; c = 0; return c; }"
 
 echo OK
