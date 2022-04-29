@@ -20,14 +20,21 @@ int new_label()
     return count++;
 }
 
-// fpにoffsetを足したものをスタックにプッシュする
 void gen_lval(Node *node)
 {
-    if (node->kind != ND_LVAR)
-        error("代入の左辺値が変数ではありません");
-
-    printf("  add x0, fp, #%d\n", node->offset);
-    printf("  str x0, [sp, #-16]!\n");
+    switch (node->kind)
+    {
+    case ND_DEREF:
+        gen(node->lhs);
+        return;
+    case ND_LVAR:
+        // fpにoffsetを足したものをスタックにプッシュする
+        printf("  add x0, fp, #%d\n", node->offset);
+        printf("  str x0, [sp, #-16]!\n");
+        return;
+    default:
+        error("代入の左辺値が変数ないしderefではありません");
+    }
 }
 
 void gen(Node *node)
