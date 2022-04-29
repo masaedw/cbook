@@ -45,12 +45,13 @@ void gen(Node *node)
         printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_ASSIGN:
-        if (node->lhs->kind != ND_LVAR)
-            error("代入の左辺値が変数ではありません");
+        gen_lval(node->lhs);
         gen(node->rhs);
 
-        printf("  ldur x0, [sp, #0]\n");
-        printf("  stur x0, [fp, #%d]\n", node->lhs->offset);
+        printf("  ldr x0, [sp], #16\n"); // rhs
+        printf("  ldr x1, [sp], #16\n"); // lhs
+        printf("  stur x0, [x1, #0]\n");
+        printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_RETURN:
         gen(node->lhs);
