@@ -264,6 +264,8 @@ void gen(Node *node)
         // dummy push
         printf("  str xzr, [sp, #-16]!\n");
         return;
+    default: // 警告抑制
+        break;
     }
 
     gen(node->lhs);
@@ -315,6 +317,8 @@ void gen(Node *node)
     case ND_NE:
         printf("  cmp x1, x0\n");
         printf("  cset x0, ne\n");
+        break;
+    default: // 警告抑制
         break;
     }
 
