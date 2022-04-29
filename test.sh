@@ -32,6 +32,10 @@ assert_fail() {
 
 assert_fail "main() {}"
 
+assert 40 "int main() { int a[10]; return sizeof a; }"
+#assert 3 "int main() { int a[10]; *a = 1; return *a; }"
+# assert 3 "int main() { int a[10]; *a = 1; *(a + 1) = 2; int *p; p = a; return *p + *(p + 1); }"
+
 assert 0 "int main() { 0; }"
 assert 42 "int main() { 42; }"
 assert 21 "int main() { 5+20-4; }"

@@ -27,6 +27,7 @@ char *size_prefix(Node *node)
     case INT:
         return "w";
     case PTR:
+    case ARRAY:
         return "x";
     }
 }
@@ -39,6 +40,8 @@ int get_size(Type *type)
         return 4;
     case PTR:
         return 8;
+    case ARRAY:
+        return get_size(type->ptr_to) * type->array_size;
     }
 }
 
@@ -70,7 +73,7 @@ void gen(Node *node)
     case ND_LVAR:
         if (node->kind != ND_LVAR)
             error("代入の左辺値が変数ではありません");
-        printf("  ldur x0, [fp, #%d]\n", node->offset);
+        printf("  ldur %s0, [fp, #%d]\n", size_prefix(node), node->offset);
         printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_ASSIGN:
@@ -85,9 +88,10 @@ void gen(Node *node)
     case ND_RETURN:
         gen(node->lhs);
         int offset = node->rhs->locals->offset + 8;
-        if (offset % 16 != 0)
+        int rem = offset % 16;
+        if (rem != 0)
         {
-            offset += 8;
+            offset += 16 - rem;
         }
         printf("  ldr x0, [sp], #16\n");
         // エピローグ
@@ -220,16 +224,17 @@ void gen(Node *node)
         // プロローグ
         // 変数分の領域を16バイト境界で確保する
         int offset = node->locals->offset + 8;
-        if (offset % 16 != 0)
+        int rem = offset % 16;
+        if (rem != 0)
         {
-            offset += 8;
+            offset += 16 - rem;
         }
         printf("  stp lr, fp, [sp, #-16]!\n");
         printf("  sub fp, sp, #%d\n", offset);
         printf("  sub sp, sp, #%d\n", offset);
         for (int i = 0; i < node->nargs; i++)
         {
-            printf("  stur X%d, [fp, #%d]\n", i, node->args[i]->offset);
+            printf("  stur %s%d, [fp, #%d]\n", size_prefix(node->args[i]), i, node->args[i]->offset);
         }
 
         // 先頭の式から順にコード生成
@@ -279,7 +284,7 @@ void gen(Node *node)
     switch (node->kind)
     {
     case ND_ADD:
-        if (node->lhs->type->ty == PTR)
+        if (node->lhs->type->ty == PTR || node->lhs->type->ty == ARRAY)
         {
             int size = get_size(node->lhs->type->ptr_to);
             printf("  mov x2, #%d\n", size);
@@ -288,7 +293,7 @@ void gen(Node *node)
         printf("  add x0, x1, x0\n");
         break;
     case ND_SUB:
-        if (node->lhs->type->ty == PTR)
+        if (node->lhs->type->ty == PTR || node->lhs->type->ty == ARRAY)
         {
             int size = get_size(node->lhs->type->ptr_to);
             printf("  mov x2, #%d\n", size);

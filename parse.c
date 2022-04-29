@@ -10,14 +10,15 @@
 
 program         = func_definition*
 func_definition = type ident "(" (type ident ("," type ident)*)? ")" "{" stmt* "}"
-type            = "int" "*"*
 stmt            = expr ";"
-                | type ident ";"
+                | type_prefix ident type_suffix? ";"
                 | "{" stmt* "}"
                 | "if" "(" expr ")" stmt ("else" stmt)?
                 | "while" "(" expr ")" stmt
                 | "for" "(" expr? ";" expr? ";" expr? ")" stmt
                 | "return" expr ";"
+type_prefix     = "int" "*"*
+type_suffix     = "[" num "]"
 expr            = assign
 assign          = equality ("=" assign)?
 equality        = relational ("==" relational | "!=" relational)*
@@ -77,7 +78,7 @@ LVar *new_lvar(Token *tok, Type *type)
     lvar->next = fundef->locals;
     lvar->name = tok->str;
     lvar->len = tok->len;
-    lvar->offset = fundef->locals->offset + 8;
+    lvar->offset = fundef->locals->offset + get_size(type);
     lvar->type = type;
     fundef->locals = lvar;
     return lvar;
@@ -211,10 +212,7 @@ void tokenize()
             continue;
         }
 
-        if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' ||
-            *p == '<' || *p == '>' ||
-            *p == '=' || *p == ';' || *p == '{' || *p == '}' || *p == ',' ||
-            *p == '&')
+        if (strchr("+-*/()<>=;{},&[]", *p))
         {
             cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
@@ -305,6 +303,15 @@ Type *new_type_ptr_to(Type *type)
     Type *ntype = calloc(1, sizeof(Type));
     ntype->ty = PTR;
     ntype->ptr_to = type;
+    return ntype;
+}
+
+Type *new_type_array_to(Type *type, size_t size)
+{
+    Type *ntype = calloc(1, sizeof(Type));
+    ntype->ty = ARRAY;
+    ntype->ptr_to = type;
+    ntype->array_size = size;
     return ntype;
 }
 
@@ -425,9 +432,9 @@ Node *unary()
         node->kind = ND_DEREF;
         Token *tok = token;
         node->lhs = unary();
-        if (node->lhs->type->ty != PTR)
+        if (node->lhs->type->ty != PTR && node->lhs->type->ty != ARRAY)
         {
-            error_at(tok->str, "ポインタではありません");
+            error_at(tok->str, "ポインタまたは配列ではありません");
         }
         node->type = node->lhs->type->ptr_to;
         return node;
@@ -532,7 +539,18 @@ Node *expr()
     return assign();
 }
 
-Type *consume_type()
+Type *consume_type_suffix(Type *type)
+{
+    if (!consume("["))
+    {
+        return type;
+    }
+    int n = expect_number();
+    expect("]");
+    return new_type_array_to(type, n);
+}
+
+Type *consume_type_prefix()
 {
     if (!consume("int"))
     {
@@ -550,9 +568,9 @@ Type *consume_type()
     return type;
 }
 
-Type *type()
+Type *type_prefix()
 {
-    Type *ty = consume_type();
+    Type *ty = consume_type_prefix();
     if (!ty)
     {
         error_at(token->str, "typeではありません");
@@ -637,10 +655,10 @@ Node *stmt()
         return node;
     }
 
-    Type *ty = consume_type();
+    Type *ty = consume_type_prefix();
     if (ty)
     {
-        LVar *lvar = new_lvar(expect_ident(), ty);
+        LVar *lvar = new_lvar(expect_ident(), consume_type_suffix(ty));
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_VARDEF;
         node->name = lvar->name;
@@ -656,7 +674,7 @@ Node *stmt()
 
 Node *func_definition()
 {
-    Type *ty = type();
+    Type *ty = type_prefix();
     Token *ident = expect_ident();
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_FUNDEF;
@@ -673,8 +691,8 @@ Node *func_definition()
         int i = 0;
         while (i < 8)
         {
-            Type *ty = type();
-            node->args[i++] = new_node_lvar(expect_ident(), ty);
+            Type *ty = type_prefix();
+            node->args[i++] = new_node_lvar(expect_ident(), consume_type_suffix(ty));
             if (!consume(","))
                 break;
         }
