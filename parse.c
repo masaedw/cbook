@@ -43,13 +43,14 @@ LVar *find_lvar(Token *tok)
 }
 
 // 変数を追加する。
-LVar *new_lvar(Token *tok)
+LVar *new_lvar(Token *tok, Type *type)
 {
     LVar *lvar = calloc(1, sizeof(LVar));
     lvar->next = fundef->locals;
     lvar->name = tok->str;
     lvar->len = tok->len;
     lvar->offset = fundef->locals->offset + 8;
+    lvar->type = type;
     fundef->locals = lvar;
     return lvar;
 }
@@ -274,12 +275,12 @@ Node *new_node_num(int val)
     return node;
 }
 
-Node *new_node_lvar(Token *tok)
+Node *new_node_lvar(Token *tok, Type *type)
 {
     LVar *lvar = find_lvar(tok);
     if (!lvar)
     {
-        lvar = new_lvar(tok);
+        lvar = new_lvar(tok, type);
     }
 
     Node *node = calloc(1, sizeof(Node));
@@ -534,7 +535,9 @@ Node *stmt()
     }
     else if (consume("int"))
     {
-        LVar *lvar = new_lvar(expect_ident());
+        Type *type = calloc(1, sizeof(Type));
+        type->ty = INT;
+        LVar *lvar = new_lvar(expect_ident(), type);
         node = calloc(1, sizeof(Node));
         node->kind = ND_VARDEF;
         node->name = lvar->name;
@@ -568,7 +571,9 @@ Node *func_definition()
         while (i < 8)
         {
             expect("int");
-            node->args[i++] = new_node_lvar(expect_ident());
+            Type *type = calloc(1, sizeof(Type));
+            type->ty = INT;
+            node->args[i++] = new_node_lvar(expect_ident(), type);
             if (!consume(","))
                 break;
         }

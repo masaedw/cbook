@@ -56,6 +56,19 @@ typedef enum
     ND_VARDEF, // variable definition
 } NodeKind;
 
+typedef struct Type Type;
+
+// 型の型
+struct Type
+{
+    enum
+    {
+        INT,
+        PTR
+    } ty;
+    struct Type *ptr_to;
+};
+
 typedef struct LVar LVar;
 
 // ローカル変数の型
@@ -65,6 +78,7 @@ struct LVar
     char *name; // 変数の名前
     int len;    // 名前の長さ
     int offset; // FPからのオフセット
+    Type *type; // 型
 };
 
 typedef struct Node Node;
