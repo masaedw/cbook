@@ -9,9 +9,10 @@
 /*
 
 program         = func_definition*
-func_definition = "int" ident "(" ("int" ident ("," "int" ident)*)? ")" "{" stmt* "}"
+func_definition = type ident "(" (type ident ("," type ident)*)? ")" "{" stmt* "}"
+type            = "int" "*"*
 stmt            = expr ";"
-                | "int" ident ";"
+                | type ident ";"
                 | "{" stmt* "}"
                 | "if" "(" expr ")" stmt ("else" stmt)?
                 | "while" "(" expr ")" stmt
@@ -489,20 +490,44 @@ Node *expr()
     return assign();
 }
 
+Type *consume_type()
+{
+    if (!consume("int"))
+    {
+        return NULL;
+    }
+
+    Type *type = calloc(1, sizeof(Type));
+    type->ty = INT;
+    return type;
+}
+
+Type *type()
+{
+    Type *ty = consume_type();
+    if (!ty)
+    {
+        error_at(token->str, "typeではありません");
+    }
+    return ty;
+}
+
 Node *stmt()
 {
-    Node *node;
-
     if (consume_token(TK_RETURN))
     {
-        node = calloc(1, sizeof(Node));
+        Node *node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
         node->rhs = fundef;
+
+        expect(";");
+        return node;
     }
-    else if (consume_token(TK_IF))
+
+    if (consume_token(TK_IF))
     {
-        node = calloc(1, sizeof(Node));
+        Node *node = calloc(1, sizeof(Node));
         node->kind = ND_IF;
         expect("(");
         node->expr0 = expr();
@@ -514,9 +539,10 @@ Node *stmt()
         }
         return node;
     }
-    else if (consume_token(TK_WHILE))
+
+    if (consume_token(TK_WHILE))
     {
-        node = calloc(1, sizeof(Node));
+        Node *node = calloc(1, sizeof(Node));
         node->kind = ND_WHILE;
         expect("(");
         node->expr0 = expr();
@@ -524,9 +550,10 @@ Node *stmt()
         node->lhs = stmt();
         return node;
     }
-    else if (consume_token(TK_FOR))
+
+    if (consume_token(TK_FOR))
     {
-        node = calloc(1, sizeof(Node));
+        Node *node = calloc(1, sizeof(Node));
         node->kind = ND_FOR;
         expect("(");
         if (!consume(";"))
@@ -547,9 +574,10 @@ Node *stmt()
         node->lhs = stmt();
         return node;
     }
-    else if (consume("{"))
+
+    if (consume("{"))
     {
-        node = calloc(1, sizeof(Node));
+        Node *node = calloc(1, sizeof(Node));
         node->kind = ND_BLOCK;
         node->body = calloc(100, sizeof(Node *));
         int i = 0;
@@ -560,28 +588,27 @@ Node *stmt()
         node->body[i] = NULL;
         return node;
     }
-    else if (consume("int"))
+
+    Type *ty = consume_type();
+    if (ty)
     {
-        Type *type = calloc(1, sizeof(Type));
-        type->ty = INT;
-        LVar *lvar = new_lvar(expect_ident(), type);
-        node = calloc(1, sizeof(Node));
+        LVar *lvar = new_lvar(expect_ident(), ty);
+        Node *node = calloc(1, sizeof(Node));
         node->kind = ND_VARDEF;
         node->name = lvar->name;
         node->len = lvar->len;
-    }
-    else
-    {
-        node = expr();
+        expect(";");
+        return node;
     }
 
+    Node *node = expr();
     expect(";");
     return node;
 }
 
 Node *func_definition()
 {
-    expect("int");
+    Type *ty = type();
     Token *ident = expect_ident();
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_FUNDEF;
@@ -589,6 +616,7 @@ Node *func_definition()
     node->len = ident->len;
     node->body = calloc(100, sizeof(Node *));
     node->locals = calloc(1, sizeof(LVar *));
+    node->rtype = ty;
     fundef = node;
     expect("(");
 
@@ -597,10 +625,8 @@ Node *func_definition()
         int i = 0;
         while (i < 8)
         {
-            expect("int");
-            Type *type = calloc(1, sizeof(Type));
-            type->ty = INT;
-            node->args[i++] = new_node_lvar(expect_ident(), type);
+            Type *ty = type();
+            node->args[i++] = new_node_lvar(expect_ident(), ty);
             if (!consume(","))
                 break;
         }
