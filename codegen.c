@@ -53,8 +53,8 @@ void gen_lval(Node *node)
         gen(node->lhs);
         return;
     case ND_LVAR:
-        // fpにoffsetを足したものをスタックにプッシュする
-        printf("  add x0, fp, #%d\n", node->offset);
+        // fpからoffsetを引いた値をスタックにプッシュする
+        printf("  add x0, fp, #-%d\n", node->offset);
         printf("  str x0, [sp, #-16]!\n");
         return;
     default:
@@ -64,18 +64,12 @@ void gen_lval(Node *node)
 
 size_t local_variables_offset(Node *fundef)
 {
-    size_t size = 0;
-    if (fundef->locals->type)
-    {
-        size = get_size(fundef->locals->type);
-    }
-    size_t offset = fundef->locals->offset + size;
+    size_t offset = fundef->locals->offset;
     size_t rem = offset % 16;
     if (rem != 0)
     {
         offset += 16 - rem;
     }
-    printf("; last_size %lu\n", size);
     return offset;
 }
 
@@ -95,7 +89,7 @@ void gen(Node *node)
             gen_lval(node);
             return;
         }
-        printf("  ldur %s0, [fp, #%d]\n", size_prefix(node), node->offset);
+        printf("  ldur %s0, [fp, #-%d]\n", size_prefix(node), node->offset);
         printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_ASSIGN:
@@ -112,8 +106,7 @@ void gen(Node *node)
         printf("  ldr x0, [sp], #16\n");
         // エピローグ
         printf("  mov sp, fp\n");
-        printf("  add sp, sp, #%lu\n", local_variables_offset(node->rhs));
-        printf("  ldp lr, fp, [sp], #16\n");
+        printf("  ldp fp, lr, [sp], #16\n");
         printf("  ret\n");
         return;
     case ND_IF:
@@ -242,12 +235,12 @@ void gen(Node *node)
         // プロローグ
         // 変数分の領域を16バイト境界で確保する
         size_t offset = local_variables_offset(node);
-        printf("  stp lr, fp, [sp, #-16]!\n");
-        printf("  sub fp, sp, #%lu\n", offset);
-        printf("  sub sp, sp, #%lu\n", offset);
+        printf("  sub sp, sp, #%lu\n", offset + 16);
+        printf("  stp fp, lr, [sp, #%lu]\n", offset);
+        printf("  add fp, sp, #%lu\n", offset);
         for (int i = 0; i < node->nargs; i++)
         {
-            printf("  stur %s%d, [fp, #%d]\n", size_prefix(node->args[i]), i, node->args[i]->offset);
+            printf("  stur %s%d, [fp, #-%d]\n", size_prefix(node->args[i]), i, node->args[i]->offset);
         }
 
         // 先頭の式から順にコード生成
@@ -263,8 +256,7 @@ void gen(Node *node)
         // エピローグ
         // 最後の式の結果がx0に残っているのでそれが返り値になる
         printf("  mov sp, fp\n");
-        printf("  add sp, sp, #%lu\n", offset);
-        printf("  ldp lr, fp, [sp], #16\n");
+        printf("  ldp fp, lr, [sp], #16\n");
         printf("  ret\n");
         printf("; -- end function %.*s\n", node->len, node->name);
         return;

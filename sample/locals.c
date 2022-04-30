@@ -1,8 +1,17 @@
 #include <stdio.h>
 
-int main(int argc, char **argv)
+extern long add(long a, long b);
+
+long f64()
 {
-    int a;
-    int b;
-    printf("%p %p %ld\n", &a - 1, &b, (long)&a - (long)&b);
+    long a = 1;
+    long b = 2;
+    return add((long)&a, (long)&b);
+}
+
+long f32()
+{
+    int a = 1;
+    int b = 2;
+    return add((long)&a, (long)&b);
 }

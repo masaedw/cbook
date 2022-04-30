@@ -79,12 +79,7 @@ LVar *new_lvar(Token *tok, Type *type)
     lvar->next = fundef->locals;
     lvar->name = tok->str;
     lvar->len = tok->len;
-    size_t size = 0;
-    if (fundef->locals->type)
-    {
-        size = get_size(fundef->locals->type);
-    }
-    lvar->offset = fundef->locals->offset + size;
+    lvar->offset = fundef->locals->offset + get_size(type);
     lvar->type = type;
     fundef->locals = lvar;
     return lvar;
