@@ -22,7 +22,18 @@ int main(int argc, char **argv)
     // 先頭の関数定義から順にコード生成
     for (int i = 0; code[i]; i++)
     {
-        gen(code[i]);
+        if (code[i]->kind == ND_FUNDEF)
+            gen(code[i]);
+    }
+
+    // グローバル変数のセクション開始
+    printf("  .section  __DATA,__data\n");
+
+    // グローバル変数の定義
+    for (int i = 0; code[i]; i++)
+    {
+        if (code[i]->kind == ND_GVARDEF)
+            gen(code[i]);
     }
 
     return 0;

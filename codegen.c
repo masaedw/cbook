@@ -274,6 +274,22 @@ void gen(Node *node)
         // dummy push
         printf("  str xzr, [sp, #-16]!\n");
         return;
+    case ND_GVARDEF:
+        printf("  .global _%.*s\n", node->len, node->name);
+        printf("  .p2align 2\n");
+        printf("_%.*s:\n", node->len, node->name);
+
+        if (node->type->ty != ARRAY)
+        {
+            printf("  .long 0\n");
+            return;
+        }
+
+        for (int i = 0; i < node->type->array_size; i++)
+        {
+            printf("  .long 0\n");
+        }
+        return;
     default: // 警告抑制
         break;
     }

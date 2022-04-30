@@ -126,4 +126,7 @@ assert 11 "int main() { int a[10]; *a = 1; *(a + 1) = 2; *(a + 2) = 3; *(a + 3) 
 assert 3 "int main() { int a[10]; a[0] = 1; a[1] = 2; int *p; p = a; return *p + p[1]; }"
 assert 11 "int main() { int a[10]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5; a[5] = 6; a[6] = 7; a[7] = 8; a[8] = 9; a[9] = 10; int *p; p = a; return p[0] + p[9]; }"
 
+# step 23
+assert 0 "int a; int b[10]; int *c[5]; int main() { return 1; }"
+
 echo OK

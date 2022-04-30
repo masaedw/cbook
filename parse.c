@@ -394,7 +394,10 @@ Node *new_node_global(Token *tok, Type *type)
     }
     gvar = new_global(tok, type);
 
-    return new_node(ND_GVARDEF, NULL, NULL, type);
+    Node *node = new_node(ND_GVARDEF, NULL, NULL, type);
+    node->name = gvar->name;
+    node->len = gvar->len;
+    return node;
 }
 
 Node *expr();
@@ -772,10 +775,11 @@ Node *global()
     {
         int n = expect_number();
         expect("]");
+        expect(";");
+        return new_node_global(ident, new_type_array_to(ty, n));
     }
     expect(";");
-
-    return NULL;
+    return new_node_global(ident, ty);
 }
 
 void program()
