@@ -8,8 +8,9 @@
 
 /*
 
-program         = func_definition*
-func_definition = type ident "(" (type ident ("," type ident)*)? ")" "{" stmt* "}"
+program         = global*
+global          = type_prefix ident "(" (type ident ("," type ident)*)? ")" "{" stmt* "}"
+                | type_prefix ident ("[" num "]")? ";"
 stmt            = expr ";"
                 | type_prefix ident type_suffix? ";"
                 | "{" stmt* "}"
@@ -46,7 +47,10 @@ char *user_input;
 Node *code[100];
 
 // 今読んでいる関数定義
-Node *fundef;
+Node *current_fundef;
+
+// グローバル変数
+LVar *globals;
 
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...)
@@ -66,7 +70,7 @@ void error_at(char *loc, char *fmt, ...)
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 LVar *find_lvar(Token *tok)
 {
-    for (LVar *var = fundef->locals; var; var = var->next)
+    for (LVar *var = current_fundef->locals; var; var = var->next)
         if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
             return var;
     return NULL;
@@ -76,12 +80,33 @@ LVar *find_lvar(Token *tok)
 LVar *new_lvar(Token *tok, Type *type)
 {
     LVar *lvar = calloc(1, sizeof(LVar));
-    lvar->next = fundef->locals;
+    lvar->next = current_fundef->locals;
     lvar->name = tok->str;
     lvar->len = tok->len;
-    lvar->offset = fundef->locals->offset + get_size(type);
+    lvar->offset = current_fundef->locals->offset + get_size(type);
     lvar->type = type;
-    fundef->locals = lvar;
+    current_fundef->locals = lvar;
+    return lvar;
+}
+
+// グローバル変数を名前で検索する。見つからなかった場合はNULLを返す。
+LVar *find_global(Token *tok)
+{
+    for (LVar *var = globals; var; var = var->next)
+        if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+            return var;
+    return NULL;
+}
+
+// グローバル変数を追加する。
+LVar *new_global(Token *tok, Type *type)
+{
+    LVar *lvar = calloc(1, sizeof(LVar));
+    lvar->next = globals;
+    lvar->name = tok->str;
+    lvar->len = tok->len;
+    lvar->type = type;
+    globals = lvar;
     return lvar;
 }
 
@@ -360,6 +385,18 @@ Node *new_node_lvar(Token *tok, Type *type)
     return node;
 }
 
+Node *new_node_global(Token *tok, Type *type)
+{
+    LVar *gvar = find_global(tok);
+    if (gvar)
+    {
+        error_at(tok->str, "既に定義済みです");
+    }
+    gvar = new_global(tok, type);
+
+    return new_node(ND_GVARDEF, NULL, NULL, type);
+}
+
 Node *expr();
 
 Node *primary()
@@ -598,7 +635,7 @@ Node *stmt()
         Node *node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
-        node->rhs = fundef;
+        node->rhs = current_fundef;
 
         expect(";");
         return node;
@@ -685,10 +722,8 @@ Node *stmt()
     return node;
 }
 
-Node *func_definition()
+Node *fundef(Type *ty, Token *ident)
 {
-    Type *ty = type_prefix();
-    Token *ident = expect_ident();
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_FUNDEF;
     node->name = ident->str;
@@ -696,8 +731,7 @@ Node *func_definition()
     node->body = calloc(100, sizeof(Node *));
     node->locals = calloc(1, sizeof(LVar *));
     node->type = ty;
-    fundef = node;
-    expect("(");
+    current_fundef = node;
 
     if (!consume(")"))
     {
@@ -720,14 +754,36 @@ Node *func_definition()
         node->body[i++] = stmt();
     }
     node->body[i] = NULL;
-    fundef = NULL;
+    current_fundef = NULL;
     return node;
+}
+
+Node *global()
+{
+    Type *ty = type_prefix();
+    Token *ident = expect_ident();
+
+    if (consume("("))
+    {
+        return fundef(ty, ident);
+    }
+
+    if (consume("["))
+    {
+        int n = expect_number();
+        expect("]");
+    }
+    expect(";");
+
+    return NULL;
 }
 
 void program()
 {
     int i = 0;
     while (!at_eof())
-        code[i++] = func_definition();
+    {
+        code[i++] = global();
+    }
     code[i] = NULL;
 }
