@@ -20,10 +20,24 @@ int new_label()
     return count++;
 }
 
-char *size_prefix(Node *node)
+char *size_inst_postfix(Node *node)
 {
     switch (node->type->ty)
     {
+    case CHAR:
+        return "b";
+    case INT:
+    case PTR:
+    case ARRAY:
+        return "";
+    }
+}
+
+char *size_register_prefix(Node *node)
+{
+    switch (node->type->ty)
+    {
+    case CHAR:
     case INT:
         return "w";
     case PTR:
@@ -32,16 +46,48 @@ char *size_prefix(Node *node)
     }
 }
 
-int get_size(Type *type)
+int type_size(Type *type)
 {
     switch (type->ty)
     {
+    case CHAR:
+        return 1;
     case INT:
         return 4;
     case PTR:
         return 8;
     case ARRAY:
-        return get_size(type->ptr_to) * type->array_size;
+        return type_size(type->ptr_to) * type->array_size;
+    }
+}
+
+int type_align(Type *type)
+{
+    switch (type->ty)
+    {
+    case CHAR:
+        return 1;
+    case INT:
+        return 2;
+    case PTR:
+        return 3;
+    case ARRAY:
+        return type_align(type->ptr_to);
+    }
+}
+
+char *type_ident(Type *type)
+{
+    switch (type->ty)
+    {
+    case CHAR:
+        return "byte";
+    case INT:
+        return "long";
+    case PTR:
+        return "quad";
+    case ARRAY:
+        return type_ident(type->ptr_to);
     }
 }
 
@@ -92,7 +138,7 @@ void gen(Node *node)
             gen_lval(node);
             return;
         }
-        printf("  ldur %s0, [fp, #-%d]\n", size_prefix(node), node->offset);
+        printf("  ldur%s %s0, [fp, #-%d]\n", size_inst_postfix(node), size_register_prefix(node), node->offset);
         printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_GVAR:
@@ -111,7 +157,7 @@ void gen(Node *node)
 
         printf("  ldr x0, [sp], #16\n"); // rhs
         printf("  ldr x1, [sp], #16\n"); // lhs
-        printf("  stur %s0, [x1, #0]\n", size_prefix(node->lhs));
+        printf("  stur%s %s0, [x1, #0]\n", size_inst_postfix(node->lhs), size_register_prefix(node->lhs));
         printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_RETURN:
@@ -253,7 +299,7 @@ void gen(Node *node)
         printf("  add fp, sp, #%lu\n", offset);
         for (int i = 0; i < node->nargs; i++)
         {
-            printf("  stur %s%d, [fp, #-%d]\n", size_prefix(node->args[i]), i, node->args[i]->offset);
+            printf("  stur%s %s%d, [fp, #-%d]\n", size_inst_postfix(node->args[i]), size_register_prefix(node->args[i]), i, node->args[i]->offset);
         }
 
         // 先頭の式から順にコード生成
@@ -289,18 +335,15 @@ void gen(Node *node)
         return;
     case ND_GVARDEF:
         printf("  .global _%.*s\n", node->len, node->name);
-        printf("  .p2align 2\n");
+        int align = type_align(node->type);
+        if (align > 1)
+            printf("  .p2align %d\n", align);
         printf("_%.*s:\n", node->len, node->name);
-
-        if (node->type->ty != ARRAY)
+        char *ident = type_ident(node->type);
+        int count = node->type->ty == ARRAY ? node->type->array_size : 1;
+        for (int i = 0; i < count; i++)
         {
-            printf("  .long 0\n");
-            return;
-        }
-
-        for (int i = 0; i < node->type->array_size; i++)
-        {
-            printf("  .long 0\n");
+            printf("  .%s 0\n", ident);
         }
         return;
     default: // 警告抑制
@@ -310,8 +353,8 @@ void gen(Node *node)
     gen(node->lhs);
     gen(node->rhs);
 
-    printf("  ldr %s0, [sp], #16\n", size_prefix(node->rhs));
-    printf("  ldr %s1, [sp], #16\n", size_prefix(node->lhs));
+    printf("  ldr%s %s0, [sp], #16\n", size_inst_postfix(node->rhs), size_register_prefix(node->rhs));
+    printf("  ldr%s %s1, [sp], #16\n", size_inst_postfix(node->lhs), size_register_prefix(node->lhs));
 
     // x1 op x0
 
@@ -320,7 +363,7 @@ void gen(Node *node)
     case ND_ADD:
         if (node->lhs->type->ty == PTR || node->lhs->type->ty == ARRAY)
         {
-            int size = get_size(node->lhs->type->ptr_to);
+            int size = type_size(node->lhs->type->ptr_to);
             printf("  mov x2, #%d\n", size);
             printf("  mul x0, x0, x2\n");
         }
@@ -329,7 +372,7 @@ void gen(Node *node)
     case ND_SUB:
         if (node->lhs->type->ty == PTR || node->lhs->type->ty == ARRAY)
         {
-            int size = get_size(node->lhs->type->ptr_to);
+            int size = type_size(node->lhs->type->ptr_to);
             printf("  mov x2, #%d\n", size);
             printf("  mul x0, x0, x2\n");
         }

@@ -18,7 +18,8 @@ stmt            = expr ";"
                 | "while" "(" expr ")" stmt
                 | "for" "(" expr? ";" expr? ";" expr? ")" stmt
                 | "return" expr ";"
-type_prefix     = "int" "*"*
+prim_type       = "int" | "char"
+type_prefix     = prim_type "*"*
 type_suffix     = "[" num "]"
 expr            = assign
 assign          = equality ("=" assign)?
@@ -83,7 +84,7 @@ LVar *new_lvar(Token *tok, Type *type)
     lvar->next = current_fundef->locals;
     lvar->name = tok->str;
     lvar->len = tok->len;
-    lvar->offset = current_fundef->locals->offset + get_size(type);
+    lvar->offset = current_fundef->locals->offset + type_size(type);
     lvar->type = type;
     current_fundef->locals = lvar;
     return lvar;
@@ -286,6 +287,13 @@ void tokenize()
             continue;
         }
 
+        if (is_token(p, "char"))
+        {
+            cur = new_token(TK_RESERVED, cur, p, 4);
+            p += 4;
+            continue;
+        }
+
         if (is_token(p, "int"))
         {
             cur = new_token(TK_RESERVED, cur, p, 3);
@@ -321,6 +329,13 @@ Type *new_type_int()
 {
     Type *type = calloc(1, sizeof(Type));
     type->ty = INT;
+    return type;
+}
+
+Type *new_type_char()
+{
+    Type *type = calloc(1, sizeof(Type));
+    type->ty = CHAR;
     return type;
 }
 
@@ -484,7 +499,7 @@ Node *unary()
     if (consume_token(TK_SIZEOF))
     {
         Node *node = unary();
-        return new_node_num(get_size(node->type));
+        return new_node_num(type_size(node->type));
     }
 
     if (consume("+"))
@@ -613,15 +628,26 @@ Type *consume_type_suffix(Type *type)
     return new_type_array_to(type, n);
 }
 
+Type *consume_prim_type()
+{
+    if (consume("char"))
+    {
+        return new_type_char();
+    }
+    if (consume("int"))
+    {
+        return new_type_int();
+    }
+    return NULL;
+}
+
 Type *consume_type_prefix()
 {
-    if (!consume("int"))
+    Type *type = consume_prim_type();
+    if (!type)
     {
         return NULL;
     }
-
-    Type *type = calloc(1, sizeof(Type));
-    type->ty = INT;
 
     while (consume("*"))
     {

@@ -66,6 +66,7 @@ struct Type
 {
     enum
     {
+        CHAR,
         INT,
         PTR,
         ARRAY
@@ -75,7 +76,7 @@ struct Type
 };
 
 // 型ごとのサイズ
-int get_size(Type *type);
+int type_size(Type *type);
 
 typedef struct LVar LVar;
 

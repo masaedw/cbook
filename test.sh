@@ -127,8 +127,15 @@ assert 3 "int main() { int a[10]; a[0] = 1; a[1] = 2; int *p; p = a; return *p +
 assert 11 "int main() { int a[10]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5; a[5] = 6; a[6] = 7; a[7] = 8; a[8] = 9; a[9] = 10; int *p; p = a; return p[0] + p[9]; }"
 
 # step 23
-assert 0 "int a; int b[10]; int *c[5]; int main() { return 1; }"
+assert 1 "int a; int b[10]; int *c[5]; int main() { return 1; }"
 assert 4 "int a; int b[10]; int *c[5]; int main() { a = 4; return a; }"
 assert 9 "int a; int b[10]; int *c[5]; int main() { c[0] = b; a = 5; *c[0] = 4; return b[0] + a; }"
+
+# step 24
+assert 1 "int main() { char a; return sizeof(a); }"
+assert 10 "int main() { char a[10]; return sizeof(a); }"
+assert 3 "int main() { char x[3]; x[0] = -1; x[1] = 2; int y; y = 4; return x[0] + y; }"
+assert 4 "int a; int b[10]; int *c[5]; int main() { a = 4; return a; }"
+assert 4 "char a; char b[10]; char *c[5]; int main() { a = 4; return a; }"
 
 echo OK
