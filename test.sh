@@ -128,5 +128,7 @@ assert 11 "int main() { int a[10]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] 
 
 # step 23
 assert 0 "int a; int b[10]; int *c[5]; int main() { return 1; }"
+assert 4 "int a; int b[10]; int *c[5]; int main() { a = 4; return a; }"
+assert 9 "int a; int b[10]; int *c[5]; int main() { c[0] = b; a = 5; *c[0] = 4; return b[0] + a; }"
 
 echo OK

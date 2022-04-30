@@ -57,6 +57,11 @@ void gen_lval(Node *node)
         printf("  add x0, fp, #-%d\n", node->offset);
         printf("  str x0, [sp, #-16]!\n");
         return;
+    case ND_GVAR:
+        printf("  adrp x0, _%.*s@PAGE\n", node->len, node->name);
+        printf("  add x0, x0, _%.*s@PAGEOFF\n", node->len, node->name);
+        printf("  str x0, [sp, #-16]!\n");
+        return;
     default:
         error("代入の左辺値が変数ないしderefではありません");
     }
@@ -82,14 +87,22 @@ void gen(Node *node)
         printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_LVAR:
-        if (node->kind != ND_LVAR)
-            error("代入の左辺値が変数ではありません");
         if (node->type->ty == ARRAY)
         {
             gen_lval(node);
             return;
         }
         printf("  ldur %s0, [fp, #-%d]\n", size_prefix(node), node->offset);
+        printf("  str x0, [sp, #-16]!\n");
+        return;
+    case ND_GVAR:
+        if (node->type->ty == ARRAY)
+        {
+            gen_lval(node);
+            return;
+        }
+        printf("  adrp x0, _%.*s@PAGE\n", node->len, node->name);
+        printf("  ldr x0, [x0, _%.*s@PAGEOFF]\n", node->len, node->name);
         printf("  str x0, [sp, #-16]!\n");
         return;
     case ND_ASSIGN:

@@ -442,16 +442,26 @@ Node *primary()
         }
 
         LVar *lvar = find_lvar(tok);
-        if (!lvar)
+        if (lvar)
         {
-            error_at(tok->str, "変数が宣言されていません。");
+            Node *node = calloc(1, sizeof(Node));
+            node->kind = ND_LVAR;
+            node->offset = lvar->offset;
+            node->type = lvar->type;
+            return node;
+        }
+        LVar *gvar = find_global(tok);
+        if (gvar)
+        {
+            Node *node = calloc(1, sizeof(Node));
+            node->kind = ND_GVAR;
+            node->type = gvar->type;
+            node->name = gvar->name;
+            node->len = gvar->len;
+            return node;
         }
 
-        Node *node = calloc(1, sizeof(Node));
-        node->kind = ND_LVAR;
-        node->offset = lvar->offset;
-        node->type = lvar->type;
-        return node;
+        error_at(tok->str, "変数が宣言されていません。");
     }
 
     // そうでなければ数値のはず
