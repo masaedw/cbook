@@ -4,3 +4,4 @@ tmp
 9cc
 a.out
 *.dSYM
+.vscode/*.log
