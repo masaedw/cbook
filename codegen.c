@@ -5,10 +5,10 @@ int new_label() {
   return count++;
 }
 
-char *size_inst_postfix(Node *node) {
+char *size_inst_postfix(Node *node, bool with_sign) {
   switch (node->type->ty) {
   case CHAR:
-    return "b";
+    return with_sign ? "sb" : "b";
   case INT:
   case PTR:
   case ARRAY:
@@ -106,7 +106,12 @@ void gen(Node *node) {
       gen_lval(node);
       return;
     }
-    printf("  ldur%s %s0, [fp, #-%d]\n", size_inst_postfix(node), size_register_prefix(node), node->offset);
+    if (node->offset >= 266) {
+      printf("  mov x1, #-%d\n", node->offset);
+      printf("  ldr%s %s0, [fp, x1]\n", size_inst_postfix(node, true), size_register_prefix(node));
+    } else {
+      printf("  ldur%s %s0, [fp, #-%d]\n", size_inst_postfix(node, true), size_register_prefix(node), node->offset);
+    }
     printf("  str x0, [sp, #-16]!\n");
     return;
   case ND_GVAR:
@@ -124,7 +129,7 @@ void gen(Node *node) {
 
     printf("  ldr x0, [sp], #16\n"); // rhs
     printf("  ldr x1, [sp], #16\n"); // lhs
-    printf("  stur%s %s0, [x1, #0]\n", size_inst_postfix(node->lhs), size_register_prefix(node->lhs));
+    printf("  stur%s %s0, [x1, #0]\n", size_inst_postfix(node->lhs, false), size_register_prefix(node->lhs));
     printf("  str x0, [sp, #-16]!\n");
     return;
   case ND_RETURN:
@@ -234,14 +239,14 @@ void gen(Node *node) {
       gen(node->args[i]);
     }
     for (int i = 0; i < node->nargs; i++) {
-      printf("  ldur X%d, [sp, #%d]\n", i, 16 * (node->nargs - i - 1));
+      printf("  ldur x%d, [sp, #%d]\n", i, 16 * (node->nargs - i - 1));
     }
     printf("  add sp, sp, #%d\n", 16 * node->nargs);
     printf("  bl _%.*s\n", node->len, node->name);
     printf("  str x0, [sp, #-16]!\n");
     return;
   case ND_FUNDEF: {
-    printf("  .global  _main  ; -- start function %.*s\n", node->len, node->name);
+    printf("  .global  _%.*s  ; -- start function %.*s\n", node->len, node->name, node->len, node->name);
     printf("  .p2align  2\n");
     printf("_%.*s:\n", node->len, node->name);
 
@@ -252,8 +257,8 @@ void gen(Node *node) {
     printf("  stp fp, lr, [sp, #%lu]\n", offset);
     printf("  add fp, sp, #%lu\n", offset);
     for (int i = 0; i < node->nargs; i++) {
-      printf("  stur%s %s%d, [fp, #-%d]\n", size_inst_postfix(node->args[i]), size_register_prefix(node->args[i]), i,
-             node->args[i]->offset);
+      printf("  stur%s %s%d, [fp, #-%d]\n", size_inst_postfix(node->args[i], false),
+             size_register_prefix(node->args[i]), i, node->args[i]->offset);
     }
 
     // 先頭の式から順にコード生成
@@ -279,7 +284,7 @@ void gen(Node *node) {
   case ND_DEREF:
     gen(node->lhs);
     printf("  ldr x0, [sp], #16\n");
-    printf("  ldur x0, [x0, #0]\n");
+    printf("  ldur%s %s0, [x0, #0]\n", size_inst_postfix(node, true), size_register_prefix(node));
     printf("  str x0, [sp, #-16]!\n");
     return;
   case ND_VARDEF:
@@ -306,8 +311,8 @@ void gen(Node *node) {
   gen(node->lhs);
   gen(node->rhs);
 
-  printf("  ldr%s %s0, [sp], #16\n", size_inst_postfix(node->rhs), size_register_prefix(node->rhs));
-  printf("  ldr%s %s1, [sp], #16\n", size_inst_postfix(node->lhs), size_register_prefix(node->lhs));
+  printf("  ldr%s %s0, [sp], #16\n", size_inst_postfix(node->rhs, true), size_register_prefix(node->rhs));
+  printf("  ldr%s %s1, [sp], #16\n", size_inst_postfix(node->lhs, true), size_register_prefix(node->lhs));
 
   // x1 op x0
 

@@ -57,3 +57,12 @@ void alloc4(int **ary, int a, int b, int c, int d) {
   x[2] = c;
   x[3] = d;
 }
+
+void print2d(char *fmt, int a, int b) {
+  printf(fmt, a, b);
+  printf("\n");
+}
+
+void print(char *s) {
+  printf("%s\n", s);
+}
