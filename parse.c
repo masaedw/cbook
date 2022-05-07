@@ -45,7 +45,7 @@ Node *code[100];
 Node *current_fundef;
 
 // グローバル変数
-LVar *globals;
+GVar *globals;
 
 // エラー箇所を報告する
 void error_at(char *loc, char *fmt, ...) {
@@ -82,16 +82,16 @@ LVar *new_lvar(Token *tok, Type *type) {
 }
 
 // グローバル変数を名前で検索する。見つからなかった場合はNULLを返す。
-LVar *find_global(Token *tok) {
-  for (LVar *var = globals; var; var = var->next)
+GVar *find_global(Token *tok) {
+  for (GVar *var = globals; var; var = var->next)
     if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
       return var;
   return NULL;
 }
 
 // グローバル変数を追加する。
-LVar *new_global(Token *tok, Type *type) {
-  LVar *lvar = calloc(1, sizeof(LVar));
+GVar *new_global(Token *tok, Type *type) {
+  GVar *lvar = calloc(1, sizeof(GVar));
   lvar->next = globals;
   lvar->name = tok->str;
   lvar->len = tok->len;
@@ -343,7 +343,7 @@ Node *new_node_lvar(Token *tok, Type *type) {
 }
 
 Node *new_node_global(Token *tok, Type *type) {
-  LVar *gvar = find_global(tok);
+  GVar *gvar = find_global(tok);
   if (gvar) {
     error_at(tok->str, "既に定義済みです");
   }
@@ -398,7 +398,7 @@ Node *primary() {
       node->type = lvar->type;
       return node;
     }
-    LVar *gvar = find_global(tok);
+    GVar *gvar = find_global(tok);
     if (gvar) {
       Node *node = calloc(1, sizeof(Node));
       node->kind = ND_GVAR;

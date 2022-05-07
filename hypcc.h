@@ -86,6 +86,16 @@ struct LVar {
   Type *type; // 型
 };
 
+typedef struct GVar GVar;
+
+// グローバル変数の型
+struct GVar {
+  GVar *next; // 次の変数かNULL
+  char *name; // 変数の名前
+  int len;    // 名前の長さ
+  Type *type; // 型
+};
+
 typedef struct Node Node;
 
 // 抽象構文木のノードの型
@@ -101,7 +111,7 @@ struct Node {
   Node *expr0;   // if/while/forの場合に使う
   Node *expr1;   // forの場合のみ使う
   Node **body;   // blockと関数定義の場合に使う
-  char *name;    // 関数の名前
+  char *name;    // 関数・グローバル変数の名前
   int len;       // 名前の長さ
   Node *args[8]; // 関数の引数
   int nargs;     // 引数の個数
