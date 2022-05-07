@@ -297,7 +297,8 @@ void gen(Node *node) {
     printf("  str xzr, [sp, #-16]!\n");
     return;
   case ND_GVARDEF:
-    printf("  .global _%.*s\n", node->len, node->name);
+    if (!node->gvar->is_string_literal)
+      printf("  .global _%.*s\n", node->len, node->name);
     int align = type_align(node->type);
     if (align > 1)
       printf("  .p2align %d\n", align);
@@ -305,7 +306,7 @@ void gen(Node *node) {
     char *ident = type_ident(node->type);
     int count = node->type->ty == ARRAY ? node->type->array_size : 1;
     for (int i = 0; i < count; i++) {
-      printf("  .%s 0\n", ident);
+      printf("  .%s %d\n", ident, node->gvar->is_string_literal ? node->gvar->str_val[i] : 0);
     }
     return;
   default: // 警告抑制

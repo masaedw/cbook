@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/hypcc",
             "args": [
-                "int a; int b[10]; int *c[5]; int main() { return 1; }"
+                "int main() { char *a; a = \"1234\"; return a[2]; }"
             ],
             "stopAtEntry": true,
             "cwd": "${fileDirname}",

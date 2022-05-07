@@ -7,16 +7,17 @@
 
 // トークンの種類
 typedef enum {
-  TK_RESERVED, // 記号
-  TK_IDENT,    // 識別子
-  TK_NUM,      // 整数トークン
-  TK_RETURN,   // return
-  TK_IF,       // if
-  TK_ELSE,     // else
-  TK_WHILE,    // while
-  TK_FOR,      // for
-  TK_SIZEOF,   // sizeof
-  TK_EOF,      // 入力の終わりを表すトークン
+  TK_RESERVED,       // 記号
+  TK_IDENT,          // 識別子
+  TK_NUM,            // 整数トークン
+  TK_STRING_LITERAL, // 文字列リテラル
+  TK_RETURN,         // return
+  TK_IF,             // if
+  TK_ELSE,           // else
+  TK_WHILE,          // while
+  TK_FOR,            // for
+  TK_SIZEOF,         // sizeof
+  TK_EOF,            // 入力の終わりを表すトークン
 } TokenKind;
 
 typedef struct Token Token;
@@ -90,10 +91,13 @@ typedef struct GVar GVar;
 
 // グローバル変数の型
 struct GVar {
-  GVar *next; // 次の変数かNULL
-  char *name; // 変数の名前
-  int len;    // 名前の長さ
-  Type *type; // 型
+  GVar *next;             // 次の変数かNULL
+  char *name;             // 変数の名前
+  int len;                // 名前の長さ
+  bool is_string_literal; // 文字列リテラルならtrue
+  char *str_val;          // 文字列の値 (0終端)
+  Type *type;             // 型
+  Token *token;           // representative token
 };
 
 typedef struct Node Node;
@@ -117,6 +121,7 @@ struct Node {
   int nargs;     // 引数の個数
   LVar *locals;  // ローカル変数
   Type *type;    // 値の型
+  GVar *gvar;    // グローバル変数
 };
 
 // パース結果
@@ -129,3 +134,9 @@ void gen(Node *node);
 
 // tokenをパースして、codeに保存する
 void program();
+
+//
+// strings.c
+//
+
+char *format(char *fmt, ...);

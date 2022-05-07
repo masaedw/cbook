@@ -138,4 +138,7 @@ assert 3 "int main() { char x[3]; x[0] = -1; x[1] = 2; int y; y = 4; return x[0]
 assert 4 "int a; int b[10]; int *c[5]; int main() { a = 4; return a; }"
 assert 4 "char a; char b[10]; char *c[5]; int main() { a = 4; return a; }"
 
+# step 25
+assert 1 "int main() { char *a; a = \"1234\"; return a[2] == 51; }"
+
 echo OK

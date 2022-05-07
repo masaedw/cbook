@@ -27,6 +27,7 @@
  *                 | "&" unary
  * indexing        = primary ("[" expr "]")
  * primary         = num
+ *                 | string-literal
  *                 | ident ("(" (ident ("," ident)*)? ")")?
  *                 | "(" expr ")"
  *
@@ -91,13 +92,43 @@ GVar *find_global(Token *tok) {
 
 // グローバル変数を追加する。
 GVar *new_global(Token *tok, Type *type) {
-  GVar *lvar = calloc(1, sizeof(GVar));
-  lvar->next = globals;
-  lvar->name = tok->str;
-  lvar->len = tok->len;
-  lvar->type = type;
-  globals = lvar;
-  return lvar;
+  GVar *gvar = calloc(1, sizeof(GVar));
+  gvar->next = globals;
+  gvar->name = tok->str;
+  gvar->len = tok->len;
+  gvar->type = type;
+  gvar->token = tok;
+  globals = gvar;
+  return gvar;
+}
+
+char *new_unique_str_name(void) {
+  static int id;
+  return format("l_.str.%d", id++);
+}
+
+Type *new_type_array_to(Type *type, size_t size);
+Type *new_type_char(void);
+Node *new_node_gvar(GVar *gvar);
+
+// 文字列リテラルをグローバル変数として追加する
+GVar *new_string_literal(Token *tok) {
+  GVar *gvar = calloc(1, sizeof(GVar));
+
+  size_t len = tok->len + 1;
+  char *val = calloc(len, 1);
+  memcpy(val, tok->str, len - 1);
+  val[len] = 0;
+
+  gvar->next = globals;
+  gvar->name = new_unique_str_name();
+  gvar->len = strlen(gvar->name) + 1;
+  gvar->type = new_type_array_to(new_type_char(), len);
+  gvar->is_string_literal = true;
+  gvar->str_val = val;
+  gvar->token = tok;
+  globals = gvar;
+  return gvar;
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
@@ -270,6 +301,16 @@ void tokenize() {
       continue;
     }
 
+    if ('"' == *p) {
+      char *q = p + 1;
+      while (*q != '"')
+        q++;
+      // リテラルのデータとしてはダブルクオートは入らない
+      cur = new_token(TK_STRING_LITERAL, cur, p + 1, q - p - 1);
+      p = q + 1;
+      continue;
+    }
+
     error_at(p, "トークナイズできません");
   }
 
@@ -277,16 +318,16 @@ void tokenize() {
   token = head.next;
 }
 
+static Type *g_type_int = &(Type){.ty = INT};
+
 Type *new_type_int() {
-  Type *type = calloc(1, sizeof(Type));
-  type->ty = INT;
-  return type;
+  return g_type_int;
 }
 
-Type *new_type_char() {
-  Type *type = calloc(1, sizeof(Type));
-  type->ty = CHAR;
-  return type;
+static Type *g_type_char = &(Type){.ty = CHAR};
+
+Type *new_type_char(void) {
+  return g_type_char;
 }
 
 Type *new_type_ptr_to(Type *type) {
@@ -345,13 +386,16 @@ Node *new_node_lvar(Token *tok, Type *type) {
 Node *new_node_global(Token *tok, Type *type) {
   GVar *gvar = find_global(tok);
   if (gvar) {
-    error_at(tok->str, "既に定義済みです");
+    error_at(tok->str, "定義済みです");
   }
-  gvar = new_global(tok, type);
+  return new_node_gvar(new_global(tok, type));
+}
 
-  Node *node = new_node(ND_GVARDEF, NULL, NULL, type);
+Node *new_node_gvar(GVar *gvar) {
+  Node *node = new_node(ND_GVARDEF, NULL, NULL, gvar->type);
   node->name = gvar->name;
   node->len = gvar->len;
+  node->gvar = gvar;
   return node;
 }
 
@@ -409,6 +453,17 @@ Node *primary() {
     }
 
     error_at(tok->str, "変数が宣言されていません。");
+  }
+
+  if (token->kind == TK_STRING_LITERAL) {
+    GVar *gvar = new_string_literal(token);
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_GVAR;
+    node->type = gvar->type;
+    node->name = gvar->name;
+    node->len = gvar->len;
+    token = token->next;
+    return node;
   }
 
   // そうでなければ数値のはず
@@ -705,6 +760,12 @@ void program() {
   int i = 0;
   while (!at_eof()) {
     code[i++] = global();
+  }
+  for (GVar *g = globals; g; g = g->next) {
+    if (!g->is_string_literal)
+      continue;
+
+    code[i++] = new_node_gvar(g);
   }
   code[i] = NULL;
 }
