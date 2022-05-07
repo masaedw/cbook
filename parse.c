@@ -3,11 +3,16 @@
 /*
  *
  * program         = global*
- * global          = type_prefix ident "(" (type ident ("," type ident)*)? ")"
- * "{" stmt* "}" | type_prefix ident ("[" num "]")? ";" stmt            = expr
- * ";" | type_prefix ident type_suffix? ";" | "{" stmt* "}" | "if" "(" expr ")"
- * stmt ("else" stmt)? | "while" "(" expr ")" stmt | "for" "(" expr? ";" expr?
- * ";" expr? ")" stmt | "return" expr ";" prim_type       = "int" | "char"
+ * global          = type_prefix ident "(" (type ident ("," type ident)*)? ")" "{" stmt* "}"
+ *                 | type_prefix ident ("[" num "]")? ";"
+ * stmt            = expr ";"
+ *                 | type_prefix ident type_suffix? ";"
+ *                 | "{" stmt* "}"
+ *                 | "if" "(" expr ")" stmt ("else" stmt)?
+ *                 | "while" "(" expr ")" stmt
+ *                 | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+ *                 | "return" expr ";"
+ * prim_type       = "int" | "char"
  * type_prefix     = prim_type "*"*
  * type_suffix     = "[" num "]"
  * expr            = assign
@@ -98,8 +103,7 @@ LVar *new_global(Token *tok, Type *type) {
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op) {
-  if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-      memcmp(token->str, op, token->len))
+  if (token->kind != TK_RESERVED || strlen(op) != token->len || memcmp(token->str, op, token->len))
     return false;
   token = token->next;
   return true;
@@ -125,8 +129,7 @@ Token *consume_ident() {
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
-  if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-      memcmp(token->str, op, token->len))
+  if (token->kind != TK_RESERVED || strlen(op) != token->len || memcmp(token->str, op, token->len))
     error_at(token->str, "'%s'ではありません", op);
   token = token->next;
 }
@@ -161,8 +164,7 @@ bool at_eof() {
 }
 
 bool is_alnum(char c) {
-  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
-         ('0' <= c && c <= '9') || (c == '_');
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || (c == '_');
 }
 
 bool is_token(char *p, char *token) {
@@ -194,8 +196,7 @@ void tokenize() {
       continue;
     }
 
-    if (strncmp(p, "<=", 2) == 0 || strncmp(p, ">=", 2) == 0 ||
-        strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0) {
+    if (strncmp(p, "<=", 2) == 0 || strncmp(p, ">=", 2) == 0 || strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0) {
       cur = new_token(TK_RESERVED, cur, p, 2);
       p += 2;
       continue;
