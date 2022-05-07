@@ -724,12 +724,14 @@ Node *stmt() {
   if (consume("{")) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_BLOCK;
-    node->body = calloc(100, sizeof(Node *));
+    Node *last = NULL;
     int i = 0;
-    while (!consume("}")) {
-      node->body[i++] = stmt();
+    if (!consume("}")) {
+      last = node->body = stmt();
     }
-    node->body[i] = NULL;
+    while (!consume("}")) {
+      last = last->next = stmt();
+    }
     return node;
   }
 
@@ -773,10 +775,13 @@ Node *fundef(Type *ty, Token *ident) {
 
   expect("{");
   int i = 0;
-  while (!consume("}")) {
-    node->body[i++] = stmt();
+  Node *last = NULL;
+  if (!consume("}")) {
+    last = node->body = stmt();
   }
-  node->body[i] = NULL;
+  while (!consume("}")) {
+    last = last->next = stmt();
+  }
   current_fundef = NULL;
   return node;
 }

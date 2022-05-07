@@ -224,9 +224,9 @@ void gen(Node *node) {
     // 最後に評価した値をスタックトップに残す。
     // bodyが空の場合は0をプッシュしておく。
     printf("  str xzr, [sp, #-16]!\n");
-    for (int i = 0; node->body[i]; i++) {
+    for (Node *i = node->body; i; i = i->next) {
       printf("  ldr x0, [sp], #16\n");
-      gen(node->body[i]);
+      gen(i);
     }
     return;
   case ND_CALL:
@@ -257,8 +257,8 @@ void gen(Node *node) {
     }
 
     // 先頭の式から順にコード生成
-    for (int i = 0; node->body[i]; i++) {
-      gen(node->body[i]);
+    for (Node *i = node->body; i; i = i->next) {
+      gen(i);
 
       // 式の評価結果としてスタックに一つの値が残っている
       // はずなので、スタックが溢れないようにポップしておく

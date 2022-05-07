@@ -111,6 +111,7 @@ typedef struct Node Node;
 // while (expr0) lhs
 // for (expr0; expr1; rhs) lhs
 struct Node {
+  Node *next;    // 復文の場合に次のノードを指す。
   NodeKind kind; // ノードの型
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
@@ -118,7 +119,7 @@ struct Node {
   int offset;    // kindがND_LVARの場合のみ使う
   Node *expr0;   // if/while/forの場合に使う
   Node *expr1;   // forの場合のみ使う
-  Node **body;   // blockと関数定義の場合に使う
+  Node *body;    // blockと関数定義の場合に使う
   char *name;    // 関数・グローバル変数の名前
   int len;       // 名前の長さ
   Node *args[8]; // 関数の引数
