@@ -253,6 +253,23 @@ void tokenize() {
       continue;
     }
 
+    // 行コメントをスキップ
+    if (strncmp(p, "//", 2) == 0) {
+      p += 2;
+      while (*p != '\n')
+        p++;
+      continue;
+    }
+
+    // ブロックコメントをスキップ
+    if (strncmp(p, "/*", 2) == 0) {
+      char *q = strstr(p + 2, "*/");
+      if (!q)
+        error_at(p, "コメントが閉じられていません");
+      p = q + 2;
+      continue;
+    }
+
     if (strncmp(p, "<=", 2) == 0 || strncmp(p, ">=", 2) == 0 || strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0) {
       cur = new_token(TK_RESERVED, cur, p, 2);
       p += 2;

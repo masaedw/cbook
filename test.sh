@@ -152,4 +152,18 @@ int main() {
 }
 EOF
 
+# step 27
+assert_in 0 <<EOF
+int main() {
+  // comment
+
+  /* comment
+  * comment
+  */
+  char *a;
+  a = "1234";
+  return 0;
+}
+EOF
+
 echo OK
