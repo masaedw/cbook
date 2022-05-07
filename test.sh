@@ -3,7 +3,8 @@ assert() {
   expected="$1"
   input="$2"
 
-  ./hypcc "$input" > tmp.s
+  echo "$input" > tmp.c
+  ./hypcc tmp.c > tmp.s
   cc -o tmp tmp.s ext.o
   ./tmp
   actual="$?"
@@ -16,21 +17,22 @@ assert() {
   fi
 }
 
-assert_fail() {
-  input="$1"
+assert_in() {
+  expected="$1"
 
-  ./hypcc "$input" > tmp.s
-  result="$?"
+  cat - > tmp.c
+  ./hypcc tmp.c > tmp.s
+  cc -o tmp tmp.s ext.o
+  ./tmp
+  actual="$?"
 
-  if [ "$result" != 0 ]; then
-    echo "=> failure as expected"
+  if [ "$actual" = "$expected" ]; then
+    echo "$(cat tmp.c) => $actual"
   else
-    echo "expected to fail, but succeeded"
+    echo "$(cat tmp.c) => $expected expected, but got $actual"
     exit 1
   fi
 }
-
-assert_fail "main() {}"
 
 assert 0 "int main() { 0; }"
 assert 42 "int main() { 42; }"
@@ -140,5 +142,14 @@ assert 4 "char a; char b[10]; char *c[5]; int main() { a = 4; return a; }"
 
 # step 25
 assert 1 "int main() { char *a; a = \"1234\"; return a[2] == 51; }"
+
+# step 26
+assert_in 0 <<EOF
+int main() {
+  char *a;
+  a = "1234";
+  return 0;
+}
+EOF
 
 echo OK

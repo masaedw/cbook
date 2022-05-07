@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -33,6 +34,9 @@ struct Token {
 
 // 現在着目しているトークン
 extern Token *token;
+
+// 入力ファイル名
+extern char *filename;
 
 // 入力プログラム
 extern char *user_input;
@@ -136,7 +140,9 @@ void gen(Node *node);
 void program();
 
 //
-// strings.c
+// io.c
 //
 
+void error(char *fmt, ...);
 char *format(char *fmt, ...);
+char *read_file(char *path);

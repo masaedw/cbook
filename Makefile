@@ -1,5 +1,5 @@
 CFLAGS=-std=c11 -g -static
-SRCS=$(wildcard *.c)
+SRCS=$(filter-out tmp.c, $(wildcard *.c))
 OBJS=$(SRCS:.c=.o)
 
 hypcc: $(OBJS)
