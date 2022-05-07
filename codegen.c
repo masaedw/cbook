@@ -1,4 +1,4 @@
-#include "9cc.h"
+#include "hypcc.h"
 
 // エラーを報告するための関数
 // printfと同じ引数を取る

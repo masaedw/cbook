@@ -8,7 +8,7 @@
             "name": "(lldb) 起動",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/9cc",
+            "program": "${workspaceFolder}/hypcc",
             "args": [
                 "int a; int b[10]; int *c[5]; int main() { return 1; }"
             ],

@@ -3,7 +3,7 @@ assert() {
   expected="$1"
   input="$2"
 
-  ./9cc "$input" > tmp.s
+  ./hypcc "$input" > tmp.s
   cc -o tmp tmp.s ext.o
   ./tmp
   actual="$?"
@@ -19,7 +19,7 @@ assert() {
 assert_fail() {
   input="$1"
 
-  ./9cc "$input" > tmp.s
+  ./hypcc "$input" > tmp.s
   result="$?"
 
   if [ "$result" != 0 ]; then

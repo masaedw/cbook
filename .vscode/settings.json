@@ -5,7 +5,7 @@
     "files.insertFinalNewline": true,
     "files.autoSave": "onFocusChange",
     "files.associations": {
-        "9cc.h": "c",
+        "hypcc.h": "c",
         "stdarg.h": "c",
         "ctype.h": "c",
         "_ctype.h": "c",
