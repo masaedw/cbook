@@ -2,6 +2,7 @@
 *.o
 tmp
 tmp.c
+test/test
 hypcc
 a.out
 *.dSYM
