@@ -7,11 +7,12 @@
  *                 | type_prefix ident ("[" num "]")? ";"
  * stmt            = expr ";"
  *                 | type_prefix ident type_suffix? ";"
- *                 | "{" stmt* "}"
+ *                 | compound_stmt
  *                 | "if" "(" expr ")" stmt ("else" stmt)?
  *                 | "while" "(" expr ")" stmt
  *                 | "for" "(" expr? ";" expr? ";" expr? ")" stmt
  *                 | "return" expr ";"
+ * compound_stmt   = "{" stmt* "}"
  * prim_type       = "int" | "char"
  * type_prefix     = prim_type "*"*
  * type_suffix     = "[" num "]"
@@ -29,7 +30,7 @@
  * primary         = num
  *                 | string-literal
  *                 | ident ("(" (ident ("," ident)*)? ")")?
- *                 | "(" expr ")"
+ *                 | "(" (compound_stmt | expr) ")"
  *
  */
 
@@ -443,11 +444,16 @@ Node *new_node_gvar(GVar *gvar) {
 }
 
 Node *expr();
+Node *stmt();
+Node *compound_stmt();
 
 Node *primary() {
-  // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
-    Node *node = expr();
+    Node *node;
+    if (consume("{"))
+      node = compound_stmt();
+    else
+      node = expr();
     expect(")");
     return node;
   }
@@ -667,6 +673,20 @@ Type *type_prefix() {
   return ty;
 }
 
+Node *compound_stmt() {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = ND_BLOCK;
+  Node *last = NULL;
+  int i = 0;
+  if (!consume("}")) {
+    last = node->body = stmt();
+  }
+  while (!consume("}")) {
+    last = last->next = stmt();
+  }
+  return node;
+}
+
 Node *stmt() {
   if (consume_token(TK_RETURN)) {
     Node *node = calloc(1, sizeof(Node));
@@ -722,17 +742,7 @@ Node *stmt() {
   }
 
   if (consume("{")) {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_BLOCK;
-    Node *last = NULL;
-    int i = 0;
-    if (!consume("}")) {
-      last = node->body = stmt();
-    }
-    while (!consume("}")) {
-      last = last->next = stmt();
-    }
-    return node;
+    return compound_stmt();
   }
 
   Type *ty = consume_type_prefix();
