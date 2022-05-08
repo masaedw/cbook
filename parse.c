@@ -415,16 +415,17 @@ Node *new_node_deref(Node *lhs, Token *tok) {
   return new_node(ND_DEREF, lhs, NULL, lhs->type->ptr_to);
 }
 
-Node *new_node_lvar(Token *tok, Type *type) {
-  LVar *lvar = find_lvar(tok);
-  if (!lvar) {
-    lvar = new_lvar(tok, type);
+Node *new_node_vardef(Token *tok, Type *type) {
+  if (find_lvar(tok)) {
+    error_at(tok->str, "定義済みです");
   }
-
+  LVar *lvar = new_lvar(tok, type);
   Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_LVAR;
+  node->kind = ND_VARDEF;
   node->offset = lvar->offset;
   node->type = lvar->type;
+  node->name = lvar->name;
+  node->len = lvar->len;
   return node;
 }
 
@@ -748,11 +749,7 @@ Node *stmt() {
 
   Type *ty = consume_type_prefix();
   if (ty) {
-    LVar *lvar = new_lvar(expect_ident(), consume_type_suffix(ty));
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_VARDEF;
-    node->name = lvar->name;
-    node->len = lvar->len;
+    Node *node = new_node_vardef(expect_ident(), consume_type_suffix(ty));
     expect(";");
     return node;
   }
@@ -776,7 +773,7 @@ Node *fundef(Type *ty, Token *ident) {
     int i = 0;
     while (i < 8) {
       Type *ty = type_prefix();
-      node->args[i++] = new_node_lvar(expect_ident(), consume_type_suffix(ty));
+      node->args[i++] = new_node_vardef(expect_ident(), consume_type_suffix(ty));
       if (!consume(","))
         break;
     }

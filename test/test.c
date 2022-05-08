@@ -177,10 +177,10 @@ int main() {
   expect(0, g);
 
   expect(5, ({
-           int x;
+           int xx;
            int *p;
-           p = &x;
-           x = 5;
+           p = &xx;
+           xx = 5;
            *p;
          }));
   expect(0, while_test0());
@@ -291,9 +291,9 @@ int main() {
   expect(9, g_b[0] + g_a);
 
   // step 24
-  char x;
-  x = -1;
-  expect(-1, x);
+  char x24;
+  x24 = -1;
+  expect(-1, x24);
   char a24;
   expect(1, sizeof(a24));
   char b24[10];
