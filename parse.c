@@ -89,12 +89,20 @@ void error_at(char *loc, char *fmt, ...) {
   exit(1);
 }
 
-// TODO: スコープを上にたどる
-// 変数を名前で検索する。見つからなかった場合はNULLを返す。
-LVar *find_lvar(Token *tok) {
-  for (LVar *var = current_scope->locals; var; var = var->next)
+LVar *find_lvar_in_scope(Node *scope, Token *tok) {
+  for (LVar *var = scope->locals; var; var = var->next)
     if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
       return var;
+  return NULL;
+}
+
+// 変数を名前で検索する。見つからなかった場合はNULLを返す。
+LVar *find_lvar(Token *tok) {
+  for (Node *scope = current_scope; scope; scope = current_scope->up) {
+    LVar *var = find_lvar_in_scope(scope, tok);
+    if (var)
+      return var;
+  }
   return NULL;
 }
 
@@ -416,7 +424,7 @@ Node *new_node_deref(Node *lhs, Token *tok) {
 }
 
 Node *new_node_vardef(Token *tok, Type *type) {
-  if (find_lvar(tok)) {
+  if (find_lvar_in_scope(current_scope, tok)) {
     error_at(tok->str, "定義済みです");
   }
   LVar *lvar = new_lvar(tok, type);
@@ -678,6 +686,8 @@ Type *type_prefix() {
 Node *compound_stmt() {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_BLOCK;
+  node->up = current_scope;
+  current_scope = node;
   Node *last = NULL;
   int i = 0;
   if (!consume("}")) {
@@ -686,6 +696,7 @@ Node *compound_stmt() {
   while (!consume("}")) {
     last = last->next = stmt();
   }
+  current_scope = node->up;
   return node;
 }
 
@@ -694,7 +705,6 @@ Node *stmt() {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
     node->lhs = expr();
-    node->rhs = current_scope;
 
     expect(";");
     return node;

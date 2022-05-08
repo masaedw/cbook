@@ -125,6 +125,7 @@ struct Node {
   Node *args[8]; // 関数の引数
   int nargs;     // 引数の個数
   LVar *locals;  // ローカル変数
+  Node *up;      // 上のスコープ
   Type *type;    // 値の型
   GVar *gvar;    // グローバル変数
 };
