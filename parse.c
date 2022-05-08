@@ -48,6 +48,8 @@ Node *code[100];
 
 // 今の変数のスコープ
 Node *current_scope;
+// 今の関数定義
+Node *current_fundef;
 
 // グローバル変数
 GVar *globals;
@@ -98,7 +100,7 @@ LVar *find_lvar_in_scope(Node *scope, Token *tok) {
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 LVar *find_lvar(Token *tok) {
-  for (Node *scope = current_scope; scope; scope = current_scope->up) {
+  for (Node *scope = current_scope; scope; scope = scope->up) {
     LVar *var = find_lvar_in_scope(scope, tok);
     if (var)
       return var;
@@ -112,7 +114,7 @@ LVar *new_lvar(Token *tok, Type *type) {
   lvar->next = current_scope->locals;
   lvar->name = tok->str;
   lvar->len = tok->len;
-  lvar->offset = current_scope->locals->offset + type_size(type);
+  current_fundef->offset = lvar->offset = current_fundef->offset + type_size(type);
   lvar->type = type;
   current_scope->locals = lvar;
   return lvar;
@@ -777,7 +779,7 @@ Node *fundef(Type *ty, Token *ident) {
   node->body = calloc(100, sizeof(Node *));
   node->locals = calloc(1, sizeof(LVar *));
   node->type = ty;
-  current_scope = node;
+  current_fundef = current_scope = node;
 
   if (!consume(")")) {
     int i = 0;
@@ -800,7 +802,7 @@ Node *fundef(Type *ty, Token *ident) {
   while (!consume("}")) {
     last = last->next = stmt();
   }
-  current_scope = NULL;
+  current_fundef = current_scope = NULL;
   return node;
 }
 

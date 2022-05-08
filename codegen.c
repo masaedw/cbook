@@ -86,13 +86,8 @@ void gen_lval(Node *node) {
   }
 }
 
-size_t local_variables_offset(Node *fundef) {
-  size_t offset = fundef->locals->offset;
-  size_t rem = offset % 16;
-  if (rem != 0) {
-    offset += 16 - rem;
-  }
-  return offset;
+int align_to(int n, int align) {
+  return (n + align - 1) / align * align;
 }
 
 void gen(Node *node) {
@@ -252,7 +247,7 @@ void gen(Node *node) {
 
     // プロローグ
     // 変数分の領域を16バイト境界で確保する
-    size_t offset = local_variables_offset(node);
+    size_t offset = align_to(node->offset, 16);
     printf("  sub sp, sp, #%lu\n", offset + 16);
     printf("  stp fp, lr, [sp, #%lu]\n", offset);
     printf("  add fp, sp, #%lu\n", offset);

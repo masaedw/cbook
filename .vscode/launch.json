@@ -10,10 +10,10 @@
             "request": "launch",
             "program": "${workspaceFolder}/hypcc",
             "args": [
-                "int main() { char *a; a = \"1234\"; return a[2]; }"
+                "test/test.c"
             ],
             "stopAtEntry": true,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "preLaunchTask": "make",

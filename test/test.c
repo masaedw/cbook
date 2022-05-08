@@ -118,6 +118,8 @@ char *g_e[5];
 char g_f;
 
 int main() {
+  // clang-format off
+
   expect(0, 0);
   expect(42, 42);
   expect(21, 5 + 20 - 4);
@@ -138,51 +140,14 @@ int main() {
   expect(1, 1 >= 1);
   expect(1, 2 >= 1);
 
-  int a;
-  a = 1;
-  int b;
-  b = 2;
-  expect(2, a * b);
 
-  int c;
-  c = 5;
-  int x;
-  x = 10;
-  expect(50, c * x);
-
-  int d;
-  if (0)
-    d = 1;
-  else
-    d = 2;
-  expect(2, d);
-
-  int e;
-  e = 5;
-  e = e - 4;
-  expect(1, e);
-
-  int f;
-  f = 5;
-  if (f == 0)
-    return 0;
-  else
-    f = f - 4;
-  expect(1, f);
-
-  int g;
-  g = 0;
-  while (0)
-    g = 5;
-  expect(0, g);
-
-  expect(5, ({
-           int xx;
-           int *p;
-           p = &xx;
-           xx = 5;
-           *p;
-         }));
+  expect(2, ({ int a; a = 1; int b; b = 2; a * b; }));
+  expect(50, ({ int a; a = 5; int b; b = 10; a * b; }));
+  expect(2, ({ int a; if (0) a = 1; else a = 2; a; }));
+  expect(1, ({ int a; a = 5; a = a - 4; a; }));
+  expect(1, ({ int a; a = 5; if (a == 0) return 0; else a = a - 4; a; }));
+  expect(0, ({ int a; a = 0; while (0) a = 5; a; }));
+  expect(5, ({ int x; int *p; p = &x; x = 5; *p; }));
   expect(0, while_test0());
   expect(0, while_test1());
   expect(1, while_test2());
@@ -207,112 +172,46 @@ int main() {
   expect(8, sub(add(3, 8), 3));
   expect(89, fib(11));
 
-  expect(0, ({
-           int **h;
-           int *i;
-           int j;
-           j = 0;
-           j;
-         }));
-  expect(3, ({
-           int k;
-           int *l;
-           l = &k;
-           *l = 3;
-           k;
-         }));
+  expect(0, ({ int **a; int *b; int c; c = 0; c; }));
+  expect(3, ({ int a; int *b; b = &a; *b = 3; a; }));
 
   // step 19
-  expect(8, ({
-           int *m;
-           alloc4(&m, 1, 2, 4, 8);
-           int *n;
-           n = m + 2;
-           print_int(*n);
-           n = m + 3;
-           *n;
-         }));
+  expect(8, ({ int *a; alloc4(&a, 1, 2, 4, 8); int *b; b = a + 2; print_int(*b); b = a + 3; *b; }));
   // intは32ビット分だけ保存する
-  expect(4, ({
-           int *o;
-           alloc4(&o, 1, 2, 4, 8);
-           *(o + 1) = 2147483647;
-           *(o + 2);
-         }));
+  expect(4, ({ int *a; alloc4(&a, 1, 2, 4, 8); *(a + 1) = 2147483647; *(a + 2); }));
 
   // step 20
   expect(4, sizeof(5));
-  int *a20;
-  expect(8, sizeof(a20));
-  int b20;
-  expect(8, sizeof(&b20));
-  expect(4, sizeof(*&b20));
+  expect(8, ({ int *a; sizeof(a); }));
+  expect(8, ({ int a; sizeof(&a); }));
+  expect(4, ({ int a; sizeof(*&a); }));
   expect(4, sizeof(5 + 3));
   expect(4, sizeof(main()));
 
   // step 21
-  int a21[10];
-  expect(40, sizeof a21);
-  *a21 = 1;
-  expect(1, *a21);
-  *a21 = 1;
-  *(a21 + 1) = 2;
-  int *p21;
-  p21 = a21;
-  expect(3, *p21 + *(p21 + 1));
+  expect(40,({ int a[10]; sizeof a;}));
+  expect(1, ({ int a[10]; *a = 1; *a;}));
+  expect(3, ({ int a[10]; *a = 1; *(a + 1) = 2; int *p; p = a; *p + *(p + 1);}));
 
   // step 22
-  int a22[10];
-  a22[0] = 1;
-  a22[1] = 2;
-  int *p22;
-  p22 = a22;
-  expect(3, *p22 + p22[1]);
-  int b22[10];
-  b22[0] = 1;
-  b22[1] = 2;
-  b22[2] = 3;
-  b22[3] = 4;
-  b22[4] = 5;
-  b22[5] = 6;
-  b22[6] = 7;
-  b22[7] = 8;
-  b22[8] = 9;
-  b22[9] = 10;
-  p22 = b22;
-  expect(11, p22[0] + p22[9]);
+  expect(3, ({ int a[10]; a[0] = 1; a[1] = 2; int *p; p = a; *p + p[1]; }));
+  expect(11, ({ int a[10]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; a[4] = 5; a[5] = 6; a[6] = 7; a[7] = 8; a[8] = 9; a[9] = 10; int *p; p = a; p[0] + p[9]; }));
 
   // step 23
-  g_a = 4;
-  expect(4, g_a);
-  g_c[0] = g_b;
-  g_a = 5;
-  *g_c[0] = 4;
-  expect(9, g_b[0] + g_a);
+  expect(4, ({ g_a = 4; g_a; }));
+  expect(9, ({ g_c[0] = g_b; g_a = 5; *g_c[0] = 4; g_b[0] + g_a; }));
 
   // step 24
-  char x24;
-  x24 = -1;
-  expect(-1, x24);
-  char a24;
-  expect(1, sizeof(a24));
-  char b24[10];
-  expect(10, sizeof(b24));
-  char c24[3];
-  c24[0] = -1;
-  c24[1] = 2;
-  int d24;
-  d24 = 4;
-  expect(3, c24[0] + d24);
-  g_d[0] = 1;
-  g_d[1] = 2;
-  g_d[2] = 3;
-  expect(6, g_d[0] + g_d[1] + g_d[2]);
+
+  expect(1, ({ char x; x = -1; expect(-1, x); char a; sizeof(a); }));
+  expect(10, ({ char a[10]; sizeof(a);}));
+  expect(3, ({ char a[3]; a[0] = -1; a[1] = 2; int b; b = 4; a[0] + b; }));
+  expect(6, ({ g_d[0] = 1; g_d[1] = 2; g_d[2] = 3; g_d[0] + g_d[1] + g_d[2]; }));
 
   // step25
-  char *a25;
-  a25 = "1234";
-  expect(51, a25[2]);
+  expect(51, ({ char *a; a = "1234"; a[2]; }));
+
+  // clang-format on
 
   puts("OK");
 
