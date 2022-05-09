@@ -8,18 +8,10 @@
 
 // トークンの種類
 typedef enum {
-  TK_RESERVED,       // 記号
+  TK_RESERVED,       // 記号・予約語
   TK_IDENT,          // 識別子
   TK_NUM,            // 整数トークン
   TK_STRING_LITERAL, // 文字列リテラル
-  TK_RETURN,         // return
-  TK_IF,             // if
-  TK_ELSE,           // else
-  TK_WHILE,          // while
-  TK_FOR,            // for
-  TK_BREAK,          // break
-  TK_CONTINUE,       // continue
-  TK_SIZEOF,         // sizeof
   TK_EOF,            // 入力の終わりを表すトークン
 } TokenKind;
 

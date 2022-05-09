@@ -56,6 +56,9 @@ static Node *current_loop;
 // グローバル変数
 GVar *globals;
 
+static Type *type_int = &(Type){.ty = INT};
+static Type *type_char = &(Type){.ty = CHAR};
+
 // エラーの起きた場所を報告するための関数
 // 下のようなフォーマットでエラーメッセージを表示する
 //
@@ -148,7 +151,6 @@ char *new_unique_str_name(void) {
 }
 
 Type *new_type_array_to(Type *type, size_t size);
-Type *new_type_char(void);
 Node *new_node_gvar(GVar *gvar);
 
 // 文字列リテラルをグローバル変数として追加する
@@ -163,7 +165,7 @@ GVar *new_string_literal(Token *tok) {
   gvar->next = globals;
   gvar->name = new_unique_str_name();
   gvar->len = strlen(gvar->name) + 1;
-  gvar->type = new_type_array_to(new_type_char(), len);
+  gvar->type = new_type_array_to(type_char, len);
   gvar->is_string_literal = true;
   gvar->str_val = val;
   gvar->token = tok;
@@ -302,43 +304,43 @@ void tokenize() {
     }
 
     if (is_token(p, "return")) {
-      cur = new_token(TK_RETURN, cur, p, 6);
+      cur = new_token(TK_RESERVED, cur, p, 6);
       p += 6;
       continue;
     }
 
     if (is_token(p, "if")) {
-      cur = new_token(TK_IF, cur, p, 2);
+      cur = new_token(TK_RESERVED, cur, p, 2);
       p += 2;
       continue;
     }
 
     if (is_token(p, "else")) {
-      cur = new_token(TK_ELSE, cur, p, 4);
+      cur = new_token(TK_RESERVED, cur, p, 4);
       p += 4;
       continue;
     }
 
     if (is_token(p, "while")) {
-      cur = new_token(TK_WHILE, cur, p, 5);
+      cur = new_token(TK_RESERVED, cur, p, 5);
       p += 5;
       continue;
     }
 
     if (is_token(p, "for")) {
-      cur = new_token(TK_FOR, cur, p, 3);
+      cur = new_token(TK_RESERVED, cur, p, 3);
       p += 3;
       continue;
     }
 
     if (is_token(p, "break")) {
-      cur = new_token(TK_BREAK, cur, p, 5);
+      cur = new_token(TK_RESERVED, cur, p, 5);
       p += 5;
       continue;
     }
 
     if (is_token(p, "continue")) {
-      cur = new_token(TK_CONTINUE, cur, p, 8);
+      cur = new_token(TK_RESERVED, cur, p, 8);
       p += 8;
       continue;
     }
@@ -356,7 +358,7 @@ void tokenize() {
     }
 
     if (is_token(p, "sizeof")) {
-      cur = new_token(TK_SIZEOF, cur, p, 6);
+      cur = new_token(TK_RESERVED, cur, p, 6);
       p += 6;
       continue;
     }
@@ -387,18 +389,6 @@ void tokenize() {
   token = head.next;
 }
 
-static Type *g_type_int = &(Type){.ty = INT};
-
-Type *new_type_int() {
-  return g_type_int;
-}
-
-static Type *g_type_char = &(Type){.ty = CHAR};
-
-Type *new_type_char(void) {
-  return g_type_char;
-}
-
 Type *new_type_ptr_to(Type *type) {
   Type *ntype = calloc(1, sizeof(Type));
   ntype->ty = PTR;
@@ -427,7 +417,7 @@ Node *new_node_num(int val) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = ND_NUM;
   node->val = val;
-  node->type = new_type_int();
+  node->type = type_int;
   return node;
 }
 
@@ -492,7 +482,7 @@ Node *primary() {
       node->name = tok->str;
       node->len = tok->len;
       // TODO: 関数の型を探す
-      node->type = new_type_int();
+      node->type = type_int;
 
       if (consume(")")) {
         return node;
@@ -555,7 +545,7 @@ Node *indexing() {
 }
 
 Node *unary() {
-  if (consume_token(TK_SIZEOF)) {
+  if (consume("sizeof")) {
     Node *node = unary();
     return new_node_num(type_size(node->type));
   }
@@ -617,16 +607,16 @@ Node *relational() {
 
   for (;;) {
     if (consume("<"))
-      node = new_node(ND_LT, node, add(), new_type_int());
+      node = new_node(ND_LT, node, add(), type_int);
     else if (consume("<="))
-      node = new_node(ND_LE, node, add(), new_type_int());
+      node = new_node(ND_LE, node, add(), type_int);
     else if (consume(">")) {
-      node = new_node(ND_LT, node, add(), new_type_int());
+      node = new_node(ND_LT, node, add(), type_int);
       Node *tmp = node->lhs;
       node->lhs = node->rhs;
       node->rhs = tmp;
     } else if (consume(">=")) {
-      node = new_node(ND_LE, node, add(), new_type_int());
+      node = new_node(ND_LE, node, add(), type_int);
       Node *tmp = node->lhs;
       node->lhs = node->rhs;
       node->rhs = tmp;
@@ -640,9 +630,9 @@ Node *equality() {
 
   for (;;) {
     if (consume("=="))
-      node = new_node(ND_EQ, node, relational(), new_type_int());
+      node = new_node(ND_EQ, node, relational(), type_int);
     else if (consume("!="))
-      node = new_node(ND_NE, node, relational(), new_type_int());
+      node = new_node(ND_NE, node, relational(), type_int);
     else
       return node;
   }
@@ -670,10 +660,10 @@ Type *consume_type_suffix(Type *type) {
 
 Type *consume_prim_type() {
   if (consume("char")) {
-    return new_type_char();
+    return type_char;
   }
   if (consume("int")) {
-    return new_type_int();
+    return type_int;
   }
   return NULL;
 }
@@ -717,7 +707,7 @@ Node *compound_stmt() {
 }
 
 Node *stmt() {
-  if (consume_token(TK_RETURN)) {
+  if (consume("return")) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
     node->lhs = expr();
@@ -726,20 +716,20 @@ Node *stmt() {
     return node;
   }
 
-  if (consume_token(TK_IF)) {
+  if (consume("if")) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_IF;
     expect("(");
     node->expr0 = expr();
     expect(")");
     node->lhs = stmt();
-    if (consume_token(TK_ELSE)) {
+    if (consume("else")) {
       node->rhs = stmt();
     }
     return node;
   }
 
-  if (consume_token(TK_WHILE)) {
+  if (consume("while")) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_WHILE;
     expect("(");
@@ -752,7 +742,7 @@ Node *stmt() {
     return node;
   }
 
-  if (consume_token(TK_FOR)) {
+  if (consume("for")) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_FOR;
     expect("(");
@@ -777,14 +767,14 @@ Node *stmt() {
 
   Token *tok = token;
 
-  if (consume_token(TK_BREAK)) {
+  if (consume("break")) {
     if (current_loop == NULL)
       error_at(tok->str, "ループの中ではありません");
     expect(";");
     return new_node(ND_BREAK, NULL, NULL, NULL);
   }
 
-  if (consume_token(TK_CONTINUE)) {
+  if (consume("continue")) {
     if (current_loop == NULL)
       error_at(tok->str, "ループの中ではありません");
     expect(";");
