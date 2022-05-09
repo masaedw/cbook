@@ -17,6 +17,8 @@ typedef enum {
   TK_ELSE,           // else
   TK_WHILE,          // while
   TK_FOR,            // for
+  TK_BREAK,          // break
+  TK_CONTINUE,       // continue
   TK_SIZEOF,         // sizeof
   TK_EOF,            // 入力の終わりを表すトークン
 } TokenKind;
@@ -43,29 +45,31 @@ extern char *user_input;
 
 // 抽象構文木のノードの種類
 typedef enum {
-  ND_ADD,     // +
-  ND_SUB,     // -
-  ND_MUL,     // *
-  ND_DIV,     // /
-  ND_LT,      // <
-  ND_LE,      // <=
-  ND_EQ,      // ==
-  ND_NE,      // !=
-  ND_ASSIGN,  // =
-  ND_NUM,     // 整数
-  ND_LVAR,    // 変数
-  ND_GVAR,    // グローバル変数
-  ND_RETURN,  // return
-  ND_IF,      // if
-  ND_WHILE,   // while
-  ND_FOR,     // for
-  ND_BLOCK,   // block
-  ND_CALL,    // function call
-  ND_FUNDEF,  // function definition
-  ND_ADDR,    // &
-  ND_DEREF,   // *
-  ND_VARDEF,  // variable definition
-  ND_GVARDEF, // global variables
+  ND_ADD,      // +
+  ND_SUB,      // -
+  ND_MUL,      // *
+  ND_DIV,      // /
+  ND_LT,       // <
+  ND_LE,       // <=
+  ND_EQ,       // ==
+  ND_NE,       // !=
+  ND_ASSIGN,   // =
+  ND_NUM,      // 整数
+  ND_LVAR,     // 変数
+  ND_GVAR,     // グローバル変数
+  ND_RETURN,   // return
+  ND_IF,       // if
+  ND_WHILE,    // while
+  ND_FOR,      // for
+  ND_BREAK,    // break
+  ND_CONTINUE, // continue
+  ND_BLOCK,    // block
+  ND_CALL,     // function call
+  ND_FUNDEF,   // function definition
+  ND_ADDR,     // &
+  ND_DEREF,    // *
+  ND_VARDEF,   // variable definition
+  ND_GVARDEF,  // global variables
 } NodeKind;
 
 typedef struct Type Type;

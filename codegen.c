@@ -1,5 +1,7 @@
 #include "hypcc.h"
 
+static int current_loop;
+
 int new_label() {
   static int count = 0;
   return count++;
@@ -169,8 +171,10 @@ void gen(Node *node) {
     // while (expr0) lhs
 
     // 条件式の結果をスタックトップに残す
+    int tmp = current_loop;
     int label = new_label();
     printf("LBEGIN_%03d:\n", label);
+    printf("LCONT_%03d:\n", label);
     printf("  ; start while expr %03d\n", label);
     gen(node->expr0);
     printf("  ; end while expr %03d\n", label);
@@ -178,7 +182,9 @@ void gen(Node *node) {
     printf("  cbz x0, LEND_%03d\n", label);
     printf("  ldr x0, [sp], #16\n");
     printf("  ; start while body %03d\n", label);
+    current_loop = label;
     gen(node->lhs);
+    current_loop = tmp;
     printf("  ldr x0, [sp], #16\n");
     printf("  ; end while body %03d\n", label);
     printf("  b LBEGIN_%03d\n", label);
@@ -190,6 +196,7 @@ void gen(Node *node) {
 
     // 条件式 expr1がある場合、条件式の結果をスタックトップに残す
     // ない場合、returnで抜けるはずなので考えない
+    int tmp = current_loop;
     int label = new_label();
     if (node->expr0) {
       printf("  ; start for expr0 %03d\n", label);
@@ -207,9 +214,12 @@ void gen(Node *node) {
       printf("  ldr x0, [sp], #16\n");
     }
     printf("  ; start for lhs %03d\n", label);
+    current_loop = label;
     gen(node->lhs);
+    current_loop = tmp;
     printf("  ldr x0, [sp], #16\n");
     printf("  ; end for lhs %03d\n", label);
+    printf("LCONT_%03d:\n", label);
     if (node->rhs) {
       printf("  ; start for rhs %03d\n", label);
       gen(node->rhs);
@@ -220,6 +230,13 @@ void gen(Node *node) {
     printf("LEND_%03d:\n", label);
     return;
   }
+  case ND_BREAK:
+    printf("  str xzr, [sp, #-16]!\n");
+    printf("  b LEND_%03d\n", current_loop);
+    return;
+  case ND_CONTINUE:
+    printf("  b LCONT_%03d\n", current_loop);
+    return;
   case ND_BLOCK:
     // 最後に評価した値をスタックトップに残す。
     // bodyが空の場合は0をプッシュしておく。

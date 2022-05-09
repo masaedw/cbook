@@ -202,7 +202,6 @@ int main() {
   expect(9, ({ g_c[0] = g_b; g_a = 5; *g_c[0] = 4; g_b[0] + g_a; }));
 
   // step 24
-
   expect(1, ({ char x; x = -1; expect(-1, x); char a; sizeof(a); }));
   expect(10, ({ char a[10]; sizeof(a);}));
   expect(3, ({ char a[3]; a[0] = -1; a[1] = 2; int b; b = 4; a[0] + b; }));
@@ -210,6 +209,11 @@ int main() {
 
   // step25
   expect(51, ({ char *a; a = "1234"; a[2]; }));
+
+  expect(1, ({ int i; for (i = 1;;) { break; i = 0; } i; }));
+  expect(5, ({ int i; for (i = 1; i < 5; i = i + 1) { continue; i = 0; } i; }));
+  expect(1, ({ int i; i = 1; while (1) { break; i = 0; } i; }));
+  expect(5, ({ int i; i = 1; while (i < 5) { i = i + 1; continue; i = 0; } i; }));
 
   // clang-format on
 

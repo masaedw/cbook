@@ -50,6 +50,8 @@ Node *code[100];
 Node *current_scope;
 // 今の関数定義
 Node *current_fundef;
+// 今のループ
+static Node *current_loop;
 
 // グローバル変数
 GVar *globals;
@@ -326,6 +328,18 @@ void tokenize() {
     if (is_token(p, "for")) {
       cur = new_token(TK_FOR, cur, p, 3);
       p += 3;
+      continue;
+    }
+
+    if (is_token(p, "break")) {
+      cur = new_token(TK_BREAK, cur, p, 5);
+      p += 5;
+      continue;
+    }
+
+    if (is_token(p, "continue")) {
+      cur = new_token(TK_CONTINUE, cur, p, 8);
+      p += 8;
       continue;
     }
 
@@ -731,7 +745,10 @@ Node *stmt() {
     expect("(");
     node->expr0 = expr();
     expect(")");
+    Node *tmp = current_loop;
+    current_loop = node;
     node->lhs = stmt();
+    current_loop = tmp;
     return node;
   }
 
@@ -751,8 +768,27 @@ Node *stmt() {
       node->rhs = expr();
       expect(")");
     }
+    Node *tmp = current_loop;
+    current_loop = node;
     node->lhs = stmt();
+    current_loop = tmp;
     return node;
+  }
+
+  Token *tok = token;
+
+  if (consume_token(TK_BREAK)) {
+    if (current_loop == NULL)
+      error_at(tok->str, "ループの中ではありません");
+    expect(";");
+    return new_node(ND_BREAK, NULL, NULL, NULL);
+  }
+
+  if (consume_token(TK_CONTINUE)) {
+    if (current_loop == NULL)
+      error_at(tok->str, "ループの中ではありません");
+    expect(";");
+    return new_node(ND_CONTINUE, NULL, NULL, NULL);
   }
 
   if (consume("{")) {
