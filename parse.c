@@ -249,6 +249,17 @@ bool is_token(char *p, char *token) {
   return strncmp(p, token, len) == 0 && !is_alnum(p[len]);
 }
 
+bool is_keyword(char *p, char **token) {
+  static char *keywords[] = {"return", "if", "else", "while", "for", "break", "continue", "char", "int", "sizeof"};
+  for (int i = 0; i < sizeof(keywords) / sizeof(char *); i++) {
+    if (is_token(p, keywords[i])) {
+      *token = keywords[i];
+      return true;
+    }
+  }
+  return false;
+}
+
 // 新しいトークンを作成してcurに繋げる
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   Token *tok = calloc(1, sizeof(Token));
@@ -307,63 +318,11 @@ void tokenize() {
       continue;
     }
 
-    if (is_token(p, "return")) {
-      cur = new_token(TK_RESERVED, cur, p, 6);
-      p += 6;
-      continue;
-    }
-
-    if (is_token(p, "if")) {
-      cur = new_token(TK_RESERVED, cur, p, 2);
-      p += 2;
-      continue;
-    }
-
-    if (is_token(p, "else")) {
-      cur = new_token(TK_RESERVED, cur, p, 4);
-      p += 4;
-      continue;
-    }
-
-    if (is_token(p, "while")) {
-      cur = new_token(TK_RESERVED, cur, p, 5);
-      p += 5;
-      continue;
-    }
-
-    if (is_token(p, "for")) {
-      cur = new_token(TK_RESERVED, cur, p, 3);
-      p += 3;
-      continue;
-    }
-
-    if (is_token(p, "break")) {
-      cur = new_token(TK_RESERVED, cur, p, 5);
-      p += 5;
-      continue;
-    }
-
-    if (is_token(p, "continue")) {
-      cur = new_token(TK_RESERVED, cur, p, 8);
-      p += 8;
-      continue;
-    }
-
-    if (is_token(p, "char")) {
-      cur = new_token(TK_RESERVED, cur, p, 4);
-      p += 4;
-      continue;
-    }
-
-    if (is_token(p, "int")) {
-      cur = new_token(TK_RESERVED, cur, p, 3);
-      p += 3;
-      continue;
-    }
-
-    if (is_token(p, "sizeof")) {
-      cur = new_token(TK_RESERVED, cur, p, 6);
-      p += 6;
+    char *kw;
+    if (is_keyword(p, &kw)) {
+      int len = strlen(kw);
+      cur = new_token(TK_RESERVED, cur, p, len);
+      p += len;
       continue;
     }
 
