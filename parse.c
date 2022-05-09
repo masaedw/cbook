@@ -64,7 +64,7 @@ static Type *type_char = &(Type){.ty = CHAR};
 //
 // foo.c:10: x = y + + 5;
 //                   ^ 式ではありません
-void error_at(char *loc, char *fmt, ...) {
+noreturn void error_at(char *loc, char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
 
@@ -171,6 +171,10 @@ GVar *new_string_literal(Token *tok) {
   gvar->token = tok;
   globals = gvar;
   return gvar;
+}
+
+bool equal(char *str) {
+  return strlen(str) == token->len && memcmp(token->str, str, token->len) == 0;
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
@@ -658,35 +662,44 @@ Type *consume_type_suffix(Type *type) {
   return new_type_array_to(type, n);
 }
 
-Type *consume_prim_type() {
-  if (consume("char")) {
-    return type_char;
+typedef struct Pair Pair;
+
+struct Pair {
+  void *key;
+  void *value;
+};
+
+static Pair *types[] = {
+    &(Pair){"char", &type_char},
+    &(Pair){"int", &type_int},
+};
+
+bool is_type_name() {
+  for (int i = 0; i < sizeof(types) / sizeof(Pair *); i++) {
+    if (equal(types[i]->key))
+      return true;
   }
-  if (consume("int")) {
-    return type_int;
-  }
-  return NULL;
+  return false;
 }
 
-Type *consume_type_prefix() {
-  Type *type = consume_prim_type();
-  if (!type) {
-    return NULL;
+Type *expect_prim_type(void) {
+  for (int i = 0; i < sizeof(types) / sizeof(Pair *); i++) {
+    if (equal(types[i]->key)) {
+      token = token->next;
+      return *(Type **)types[i]->value;
+    }
   }
+  error_at(token->str, "型名ではありません");
+}
+
+Type *expect_type_prefix() {
+  Type *type = expect_prim_type();
 
   while (consume("*")) {
     type = new_type_ptr_to(type);
   }
 
   return type;
-}
-
-Type *type_prefix() {
-  Type *ty = consume_type_prefix();
-  if (!ty) {
-    error_at(token->str, "typeではありません");
-  }
-  return ty;
 }
 
 Node *compound_stmt() {
@@ -785,8 +798,8 @@ Node *stmt() {
     return compound_stmt();
   }
 
-  Type *ty = consume_type_prefix();
-  if (ty) {
+  if (is_type_name()) {
+    Type *ty = expect_type_prefix();
     Node *node = new_node_vardef(expect_ident(), consume_type_suffix(ty));
     expect(";");
     return node;
@@ -810,7 +823,7 @@ Node *fundef(Type *ty, Token *ident) {
   if (!consume(")")) {
     int i = 0;
     while (i < 8) {
-      Type *ty = type_prefix();
+      Type *ty = expect_type_prefix();
       node->args[i++] = new_node_vardef(expect_ident(), consume_type_suffix(ty));
       if (!consume(","))
         break;
@@ -833,7 +846,7 @@ Node *fundef(Type *ty, Token *ident) {
 }
 
 Node *global() {
-  Type *ty = type_prefix();
+  Type *ty = expect_type_prefix();
   Token *ident = expect_ident();
 
   if (consume("(")) {
