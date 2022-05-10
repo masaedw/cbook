@@ -2,6 +2,7 @@
 // int print2d(char *fmt, int a, int b);
 typedef int newInt;
 typedef int *IntPtrAry10[10];
+typedef int x;
 
 int expect(int expected, int actual) {
   if (expected != actual) {
