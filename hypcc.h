@@ -63,6 +63,7 @@ typedef enum {
   ND_DEREF,    // *
   ND_VARDEF,   // variable definition
   ND_GVARDEF,  // global variables
+  ND_TYPEDEF,  // typedef
 } NodeKind;
 
 typedef struct Type Type;
@@ -76,6 +77,16 @@ struct Type {
 
 // 型ごとのサイズ
 int type_size(Type *type);
+
+typedef struct TypeDef TypeDef;
+
+struct TypeDef {
+  Type *type;
+  char *name;
+  int len;
+  Token *token;
+  TypeDef *next;
+};
 
 typedef struct LVar LVar;
 
@@ -125,6 +136,7 @@ struct Node {
   Node *up;      // 上のスコープ
   Type *type;    // 値の型
   GVar *gvar;    // グローバル変数
+  TypeDef *tdef; // typedef
 };
 
 // パース結果

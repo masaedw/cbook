@@ -1,5 +1,7 @@
 // int puts(char *s);
 // int print2d(char *fmt, int a, int b);
+typedef int newInt;
+typedef int *IntPtrAry10[10];
 
 int expect(int expected, int actual) {
   if (expected != actual) {
@@ -214,6 +216,10 @@ int main() {
   expect(5, ({ int i; for (i = 1; i < 5; i = i + 1) { continue; i = 0; } i; }));
   expect(1, ({ int i; i = 1; while (1) { break; i = 0; } i; }));
   expect(5, ({ int i; i = 1; while (i < 5) { i = i + 1; continue; i = 0; } i; }));
+
+
+  expect(1, ({ newInt i; i = 1; i; }));
+  expect(10, ({ IntPtrAry10 ary; sizeof(ary) / 8 /*sizeof(int*)*/; }));
 
   // clang-format on
 

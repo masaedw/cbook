@@ -4,7 +4,8 @@
  *
  * program         = global*
  * global          = type_prefix ident "(" (type ident ("," type ident)*)? ")" "{" stmt* "}"
- *                 | type_prefix ident ("[" num "]")? ";"
+ *                 | type_prefix ident ("[" num "]")? ";" // prototype decl
+ *                 | "typedef" type_prefix ident ("[" num "]")? ";"
  * stmt            = expr ";"
  *                 | type_prefix ident type_suffix? ";"
  *                 | compound_stmt
@@ -55,6 +56,9 @@ static Node *current_loop;
 
 // グローバル変数
 GVar *globals;
+
+// typedef
+TypeDef *tdefs;
 
 static Type *type_int = &(Type){.ty = INT};
 static Type *type_char = &(Type){.ty = CHAR};
@@ -143,6 +147,26 @@ GVar *new_global(Token *tok, Type *type) {
   gvar->token = tok;
   globals = gvar;
   return gvar;
+}
+
+// typedefを名前で検索する。見つからなかった場合はNULLを返す。
+TypeDef *find_typedef(Token *tok) {
+  for (TypeDef *def = tdefs; def; def = def->next)
+    if (def->len == tok->len && !memcmp(tok->str, def->name, def->len))
+      return def;
+  return NULL;
+}
+
+// typedefを追加する。
+TypeDef *new_typedef(Token *tok, Type *type) {
+  TypeDef *tdef = calloc(1, sizeof(TypeDef));
+  tdef->next = tdefs;
+  tdef->name = tok->str;
+  tdef->len = tok->len;
+  tdef->type = type;
+  tdef->token = tok;
+  tdefs = tdef;
+  return tdef;
 }
 
 char *new_unique_str_name(void) {
@@ -250,7 +274,8 @@ bool is_token(char *p, char *token) {
 }
 
 bool is_keyword(char *p, char **token) {
-  static char *keywords[] = {"return", "if", "else", "while", "for", "break", "continue", "char", "int", "sizeof"};
+  static char *keywords[] = {"return",   "if",   "else", "while",  "for",    "break",
+                             "continue", "char", "int",  "sizeof", "typedef"};
   for (int i = 0; i < sizeof(keywords) / sizeof(char *); i++) {
     if (is_token(p, keywords[i])) {
       *token = keywords[i];
@@ -326,7 +351,7 @@ void tokenize() {
       continue;
     }
 
-    if ('a' <= *p && *p <= 'z') {
+    if (isalpha(*p)) {
       char *q = p + 1;
       while (is_alnum(*q))
         q++;
@@ -419,6 +444,19 @@ Node *new_node_gvar(GVar *gvar) {
   node->name = gvar->name;
   node->len = gvar->len;
   node->gvar = gvar;
+  return node;
+}
+
+Node *new_node_typedef(Token *tok, Type *type) {
+  TypeDef *tdef = find_typedef(tok);
+  if (tdef) {
+    error_at(tok->str, "定義済みです");
+  }
+  tdef = new_typedef(tok, type);
+  Node *node = new_node(ND_TYPEDEF, NULL, NULL, tdef->type);
+  node->name = tdef->token->str;
+  node->len = tdef->token->len;
+  node->tdef = tdef;
   return node;
 }
 
@@ -633,12 +671,27 @@ static Pair *types[] = {
     &(Pair){"int", &type_int},
 };
 
-bool is_type_name() {
+Type *consume_type_name(void) {
   for (int i = 0; i < sizeof(types) / sizeof(Pair *); i++) {
-    if (equal(types[i]->key))
-      return true;
+    if (equal(types[i]->key)) {
+      token = token->next;
+      return *(Type **)types[i]->value;
+    }
   }
-  return false;
+  TypeDef *ty = find_typedef(token);
+  if (ty) {
+    token = token->next;
+    return ty->type;
+  }
+  return NULL;
+}
+
+Type *expect_type_name(void) {
+  Type *type = consume_type_name();
+  if (!type) {
+    error_at(token->str, "型名ではありません");
+  }
+  return type;
 }
 
 Type *expect_prim_type(void) {
@@ -651,13 +704,10 @@ Type *expect_prim_type(void) {
   error_at(token->str, "型名ではありません");
 }
 
-Type *expect_type_prefix() {
-  Type *type = expect_prim_type();
-
+Type *expect_type_prefix(Type *type) {
   while (consume("*")) {
     type = new_type_ptr_to(type);
   }
-
   return type;
 }
 
@@ -757,9 +807,11 @@ Node *stmt() {
     return compound_stmt();
   }
 
-  if (is_type_name()) {
-    Type *ty = expect_type_prefix();
-    Node *node = new_node_vardef(expect_ident(), consume_type_suffix(ty));
+  Type *ty = consume_type_name();
+  if (ty) {
+    ty = expect_type_prefix(ty);
+    Token *ident = expect_ident();
+    Node *node = new_node_vardef(ident, consume_type_suffix(ty));
     expect(";");
     return node;
   }
@@ -782,7 +834,7 @@ Node *fundef(Type *ty, Token *ident) {
   if (!consume(")")) {
     int i = 0;
     while (i < 8) {
-      Type *ty = expect_type_prefix();
+      Type *ty = expect_type_prefix(expect_type_name());
       node->args[i++] = new_node_vardef(expect_ident(), consume_type_suffix(ty));
       if (!consume(","))
         break;
@@ -805,19 +857,22 @@ Node *fundef(Type *ty, Token *ident) {
 }
 
 Node *global() {
-  Type *ty = expect_type_prefix();
+  if (consume("typedef")) {
+    Type *ty = expect_type_prefix(expect_type_name());
+    Token *ident = expect_ident();
+    ty = consume_type_suffix(ty);
+    expect(";");
+    return new_node_typedef(ident, ty);
+  }
+
+  Type *ty = expect_type_prefix(expect_type_name());
   Token *ident = expect_ident();
 
   if (consume("(")) {
     return fundef(ty, ident);
   }
 
-  if (consume("[")) {
-    int n = expect_number();
-    expect("]");
-    expect(";");
-    return new_node_global(ident, new_type_array_to(ty, n));
-  }
+  ty = consume_type_suffix(ty);
   expect(";");
   return new_node_global(ident, ty);
 }
