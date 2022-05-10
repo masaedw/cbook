@@ -149,6 +149,14 @@ GVar *new_global(Token *tok, Type *type) {
   return gvar;
 }
 
+bool is_variable(void) {
+  if (token->kind != TK_IDENT) {
+    return false;
+  }
+
+  return find_lvar(token) || find_global(token);
+}
+
 // typedefを名前で検索する。見つからなかった場合はNULLを返す。
 TypeDef *find_typedef(Token *tok) {
   for (TypeDef *def = tdefs; def; def = def->next)
@@ -807,6 +815,13 @@ Node *stmt() {
     return compound_stmt();
   }
 
+  // 型名と変数名が重複する場合があるので、変数名かどうかを先にチェックする。
+  if (is_variable()) {
+    Node *node = expr();
+    expect(";");
+    return node;
+  }
+
   Type *ty = consume_type_name();
   if (ty) {
     ty = expect_type_prefix(ty);
@@ -826,7 +841,6 @@ Node *fundef(Type *ty, Token *ident) {
   node->kind = ND_FUNDEF;
   node->name = ident->str;
   node->len = ident->len;
-  node->body = calloc(100, sizeof(Node *));
   node->locals = calloc(1, sizeof(LVar *));
   node->type = ty;
   current_fundef = current_scope = node;
